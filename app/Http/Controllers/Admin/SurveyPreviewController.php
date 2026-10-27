@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\SurveyDraftManager;
+use Illuminate\View\View;
 
 class SurveyPreviewController extends Controller
 {
-    /**
-     * Handle the incoming request.
-     */
-    public function __invoke(Request $request)
+    public function __invoke(SurveyDraftManager $surveys): View
     {
-        //
+        $version = $surveys->editingVersion();
+
+        return view('conversation-room.create', $surveys->surveyViewData($version, true));
     }
 }

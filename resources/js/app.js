@@ -1,5 +1,6 @@
 import Alpine from 'alpinejs';
 import { gsap } from 'gsap';
+import { surveyQuestionManager } from './survey-question-manager';
 
 const createAnswers = (questions = []) => Object.fromEntries(
     questions.map((question) => {
@@ -90,6 +91,7 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
     errorMessage: '',
     isAnimating: false,
     isComplete: false,
+    isPreview: configuration.isPreview ?? false,
     prefersReducedMotion: false,
     questions: configuration.questions ?? [],
     sections: configuration.sections ?? [],
@@ -126,7 +128,11 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
     },
 
     get nextButtonLabel() {
-        return this.currentStep === this.totalSteps - 1 ? 'Submit survey' : 'Next question';
+        if (this.currentStep !== this.totalSteps - 1) {
+            return 'Next question';
+        }
+
+        return this.isPreview ? 'Finish preview' : 'Submit survey';
     },
 
     clearError() {
@@ -188,6 +194,14 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
         this.errorMessage = '';
 
         if (this.currentStep === this.totalSteps - 1) {
+            if (this.isPreview) {
+                this.transitionStage(() => {
+                    this.isComplete = true;
+                }, 1);
+
+                return;
+            }
+
             this.isAnimating = true;
             this.$refs.surveyForm.submit();
 
@@ -525,6 +539,8 @@ Alpine.data('questionEditor', (initialOptions = [], initialType = 'single_choice
         this.options.splice(index, 1);
     },
 }));
+
+Alpine.data('surveyQuestionManager', surveyQuestionManager);
 
 window.Alpine = Alpine;
 

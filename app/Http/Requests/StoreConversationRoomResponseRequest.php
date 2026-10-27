@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\SurveyQuestion;
+use App\Models\SurveyVersion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,6 +14,8 @@ class StoreConversationRoomResponseRequest extends FormRequest
 {
     /** @var Collection<int, SurveyQuestion>|null */
     private ?Collection $surveyQuestions = null;
+
+    private ?SurveyVersion $surveyVersion = null;
 
     public function authorize(): bool
     {
@@ -26,7 +29,16 @@ class StoreConversationRoomResponseRequest extends FormRequest
      */
     public function rules(): array
     {
-        $rules = ['answers' => ['required', 'array']];
+        $rules = [
+            'survey_version' => [
+                'required',
+                'integer',
+                Rule::exists('survey_versions', 'number')->where(
+                    fn ($query) => $query->where('status', '!=', SurveyVersion::STATUS_DRAFT),
+                ),
+            ],
+            'answers' => ['required', 'array'],
+        ];
 
         foreach ($this->questions() as $question) {
             $answerKey = 'answers.'.$question->id;
@@ -128,10 +140,25 @@ class StoreConversationRoomResponseRequest extends FormRequest
      */
     private function questions(): Collection
     {
-        return $this->surveyQuestions ??= SurveyQuestion::query()
-            ->active()
+        $version = $this->version();
+
+        if (! $version) {
+            return new Collection;
+        }
+
+        return $this->surveyQuestions ??= $version->questions()
+            ->where('is_active', true)
+            ->whereHas('surveySection', fn ($query) => $query->where('is_active', true))
             ->with(['options' => fn ($query) => $query->where('is_active', true)])
             ->ordered()
             ->get();
+    }
+
+    private function version(): ?SurveyVersion
+    {
+        return $this->surveyVersion ??= SurveyVersion::query()
+            ->where('number', $this->integer('survey_version'))
+            ->where('status', '!=', SurveyVersion::STATUS_DRAFT)
+            ->first();
     }
 }

@@ -14,6 +14,12 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="survey-page">
+        @if ($isPreview)
+            <div class="fixed inset-x-0 top-0 z-[100] flex min-h-11 items-center justify-center gap-3 bg-[#071326] px-4 py-2 text-center text-xs font-bold text-white shadow-lg">
+                <span class="inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+                Draft preview · Version {{ $surveyVersion->number }} · Responses are disabled
+            </div>
+        @endif
         <svg class="survey-icon-sprite" aria-hidden="true">
             <symbol id="survey-icon-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m6 6 12 12"></path></symbol>
             <symbol id="survey-icon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></symbol>
@@ -157,6 +163,7 @@
                         novalidate
                     >
                         @csrf
+                        <input type="hidden" name="survey_version" value="{{ $surveyVersion->number }}">
                         <div class="survey-stage" x-ref="stage">
                             @foreach ($questions as $question)
                                 @include('conversation-room.partials.question', ['question' => $question, 'step' => $loop->index])
@@ -177,12 +184,12 @@
                                         </svg>
                                     </div>
                                 </div>
-                                <p data-success-content>Survey complete</p>
+                                <p data-success-content>{{ $isPreview ? 'Preview complete' : 'Survey complete' }}</p>
                                 <h2 id="survey-complete-title" data-completion-title data-success-content tabindex="-1">
-                                    Thank you for sharing your experience.
+                                    {{ $isPreview ? 'No response was submitted.' : 'Thank you for sharing your experience.' }}
                                 </h2>
                                 <span data-success-content>
-                                    Your feedback will help Boston English Center create a more useful and welcoming Conversation Room.
+                                    {{ $isPreview ? 'Return to the question manager to continue editing or publish these changes.' : 'Your feedback will help Boston English Center create a more useful and welcoming Conversation Room.' }}
                                 </span>
                                 <div class="survey-complete-actions" data-success-content>
                                     <a href="{{ route('conversation-room.create') }}" class="survey-button survey-button--primary">

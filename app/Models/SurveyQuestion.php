@@ -44,10 +44,10 @@ class SurveyQuestion extends Model
     public static function typeLabels(): array
     {
         return [
-            self::TYPE_SINGLE_CHOICE => 'Choose one',
-            self::TYPE_MULTIPLE_CHOICE => 'Choose multiple',
-            self::TYPE_GROUPED_CHOICE => 'Choose one per group',
-            self::TYPE_LONG_TEXT => 'Written response',
+            self::TYPE_SINGLE_CHOICE => 'Single choice',
+            self::TYPE_MULTIPLE_CHOICE => 'Multiple choice',
+            self::TYPE_GROUPED_CHOICE => 'Grouped choice',
+            self::TYPE_LONG_TEXT => 'Open-ended text',
         ];
     }
 

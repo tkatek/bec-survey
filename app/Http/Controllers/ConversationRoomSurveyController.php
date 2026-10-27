@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreConversationRoomResponseRequest;
 use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
+use App\Models\SurveyVersion;
+use App\SurveyDraftManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -15,55 +17,29 @@ class ConversationRoomSurveyController extends Controller
     /**
      * Display the Conversation Room survey.
      */
-    public function create(): View
+    public function create(SurveyDraftManager $surveys): View
     {
-        $questions = SurveyQuestion::query()
-            ->active()
-            ->with(['options' => fn ($query) => $query->where('is_active', true)])
-            ->ordered()
-            ->get();
-        $sections = $questions->pluck('section')->unique()->values();
-        $surveyConfiguration = [
-            'totalSteps' => $questions->count(),
-            'questions' => $questions->values()->map(fn (SurveyQuestion $question): array => [
-                'id' => $question->id,
-                'required' => $question->is_required,
-                'type' => $question->type,
-                'maxSelections' => $question->max_selections,
-                'groups' => $question->options->pluck('group_name')->filter()->unique()->values()->all(),
-            ])->all(),
-            'sections' => $sections->map(function (string $section) use ($questions): array {
-                $indexes = $questions->values()
-                    ->map(fn (SurveyQuestion $question, int $index): ?int => $question->section === $section ? $index : null)
-                    ->filter(fn (?int $index): bool => $index !== null)
-                    ->values();
-
-                return [
-                    'name' => $section,
-                    'start' => $indexes->first(),
-                    'end' => $indexes->last(),
-                ];
-            })->all(),
-        ];
-
-        return view('conversation-room.create', compact('questions', 'sections', 'surveyConfiguration'));
+        return view('conversation-room.create', $surveys->surveyViewData($surveys->activeVersion()));
     }
 
     /**
      * Store an anonymous Conversation Room survey response.
      */
-    public function store(StoreConversationRoomResponseRequest $request): RedirectResponse
+    public function store(
+        StoreConversationRoomResponseRequest $request,
+        SurveyDraftManager $surveys,
+    ): RedirectResponse
     {
         $answers = $request->validated('answers');
-        $questions = SurveyQuestion::query()
-            ->active()
-            ->with(['options' => fn ($query) => $query->where('is_active', true)])
-            ->ordered()
-            ->get();
+        $version = SurveyVersion::query()
+            ->where('number', $request->integer('survey_version'))
+            ->where('status', '!=', SurveyVersion::STATUS_DRAFT)
+            ->sole();
+        $questions = $surveys->surveyViewData($version)['questions'];
 
-        DB::transaction(function () use ($answers, $questions): void {
+        DB::transaction(function () use ($answers, $questions, $version): void {
             $response = ConversationRoomResponse::create([
-                'survey_version' => 2,
+                'survey_version' => $version->number,
             ]);
             $labelsByQuestion = [];
             $groupedLabels = [];
