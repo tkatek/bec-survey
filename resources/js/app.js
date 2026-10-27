@@ -253,10 +253,8 @@ Alpine.data('conversationRoomSurvey', () => ({
         this.errorMessage = '';
 
         if (this.currentStep === this.totalSteps - 1) {
-            this.transitionStage(() => {
-                this.currentStep += 1;
-                this.isComplete = true;
-            }, 1);
+            this.isAnimating = true;
+            this.$refs.surveyForm.submit();
 
             return;
         }

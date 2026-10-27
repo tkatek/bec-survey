@@ -162,7 +162,18 @@
                         </div>
                     </div>
 
-                    <form class="survey-form" :aria-busy="isAnimating.toString()" @submit.prevent="nextQuestion" @change="clearError" @input="clearError" novalidate>
+                    <form
+                        class="survey-form"
+                        method="POST"
+                        action="{{ route('conversation-room.store') }}"
+                        x-ref="surveyForm"
+                        :aria-busy="isAnimating.toString()"
+                        @submit.prevent="nextQuestion"
+                        @change="clearError"
+                        @input="clearError"
+                        novalidate
+                    >
+                        @csrf
                         <div class="survey-stage" x-ref="stage">
                             @include('conversation-room.sections.attendance-participation')
                             @include('conversation-room.sections.updated-conversation-room')
