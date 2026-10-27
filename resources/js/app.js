@@ -418,6 +418,81 @@ Alpine.data('surveyThankYou', () => ({
     },
 }));
 
+Alpine.data('dashboardAnalytics', () => ({
+    init() {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const counters = Array.from(this.$root.querySelectorAll('[data-count-up]'));
+
+        const setCounterValue = (element, value) => {
+            const prefix = element.dataset.prefix ?? '';
+            const suffix = element.dataset.suffix ?? '';
+
+            element.textContent = `${prefix}${Math.round(value).toLocaleString()}${suffix}`;
+        };
+
+        if (prefersReducedMotion) {
+            counters.forEach((counter) => setCounterValue(counter, Number(counter.dataset.countUp ?? 0)));
+
+            return;
+        }
+
+        this.$nextTick(() => {
+            const statCards = Array.from(this.$root.querySelectorAll('[data-dashboard-stat]'));
+            const horizontalBars = Array.from(this.$root.querySelectorAll('[data-dashboard-bar]'));
+            const verticalBars = Array.from(this.$root.querySelectorAll('[data-dashboard-column]'));
+            const chartReveal = this.$root.querySelector('[data-dashboard-chart-reveal]');
+            const donut = this.$root.querySelector('[data-dashboard-donut]');
+
+            gsap.timeline({ defaults: { ease: 'power3.out' } })
+                .from(statCards, {
+                    opacity: 0,
+                    y: 16,
+                    duration: 0.42,
+                    stagger: 0.055,
+                })
+                .fromTo(chartReveal, {
+                    attr: { width: 0 },
+                }, {
+                    attr: { width: 760 },
+                    duration: 0.9,
+                    ease: 'power2.inOut',
+                }, 0.18)
+                .from(donut, {
+                    opacity: 0,
+                    rotate: -18,
+                    scale: 0.72,
+                    duration: 0.62,
+                }, 0.28)
+                .from(horizontalBars, {
+                    scaleX: 0,
+                    transformOrigin: 'left center',
+                    duration: 0.62,
+                    stagger: 0.025,
+                }, 0.34)
+                .from(verticalBars, {
+                    scaleY: 0,
+                    transformOrigin: 'center bottom',
+                    duration: 0.62,
+                    stagger: 0.05,
+                }, 0.38);
+
+            counters.forEach((counter, index) => {
+                const targetValue = Number(counter.dataset.countUp ?? 0);
+                const animatedValue = { value: 0 };
+
+                gsap.to(animatedValue, {
+                    value: targetValue,
+                    duration: 0.85,
+                    delay: 0.08 + (index * 0.04),
+                    ease: 'power2.out',
+                    onUpdate: () => setCounterValue(counter, animatedValue.value),
+                    onComplete: () => setCounterValue(counter, targetValue),
+                });
+            });
+        });
+    },
+}));
+
 Alpine.data('questionEditor', (initialOptions = [], initialType = 'single_choice') => ({
     type: initialType,
     options: initialOptions.length > 0

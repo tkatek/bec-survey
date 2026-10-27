@@ -26,7 +26,14 @@ class DashboardController extends Controller
         $periodStart = now()->subDays($period - 1)->startOfDay();
         $previousPeriodStart = $periodStart->copy()->subDays($period);
         $previousPeriodEnd = $periodStart->copy()->subSecond();
-        $periodResponses = ConversationRoomResponse::query()->where('created_at', '>=', $periodStart)->count();
+        $periodStats = ConversationRoomResponse::query()
+            ->where('created_at', '>=', $periodStart)
+            ->toBase()
+            ->selectRaw('COUNT(*) as responses')
+            ->selectRaw('SUM(CASE WHEN is_demo = 1 THEN 1 ELSE 0 END) as demo_responses')
+            ->first();
+        $periodResponses = (int) ($periodStats->responses ?? 0);
+        $demoResponses = (int) ($periodStats->demo_responses ?? 0);
         $previousPeriodResponses = ConversationRoomResponse::query()
             ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
             ->count();
@@ -114,23 +121,28 @@ class DashboardController extends Controller
                 ->limit(3)
                 ->get()
             : collect();
+        $charts = [
+            'attendance' => $buildChart('attendance_frequency'),
+            'attendanceChange' => $buildChart('attendance_change'),
+            'barriers' => $buildChart('attendance_reasons', null, 6),
+            'format' => $buildChart('session_format'),
+            'preferredTime' => $buildChart('preferred_session_time', 'Preferred time'),
+        ];
 
         return view('dashboard', [
             'period' => $period,
             'periodResponses' => $periodResponses,
+            'demoResponses' => $demoResponses,
             'responseTrend' => $this->percentageChange($periodResponses, $previousPeriodResponses),
             'activeQuestions' => $questions->where('is_active', true)->count(),
             'positiveUsefulnessPercentage' => $periodResponses > 0 ? (int) round(($positiveUsefulness / $periodResponses) * 100) : 0,
             'likelyToAttendPercentage' => $periodResponses > 0 ? (int) round(($likelyToAttend / $periodResponses) * 100) : 0,
             'responseSeries' => $responseSeries,
             'maxSeriesValue' => max(1, (int) $responseSeries->max('value')),
-            'charts' => [
-                'attendance' => $buildChart('attendance_frequency'),
-                'attendanceChange' => $buildChart('attendance_change'),
-                'barriers' => $buildChart('attendance_reasons', null, 6),
-                'format' => $buildChart('session_format'),
-                'preferredTime' => $buildChart('preferred_session_time', 'Preferred time'),
-            ],
+            'momentumChart' => $this->buildMomentumChart($responseSeries),
+            'charts' => $charts,
+            'strongestFormat' => $charts['format'][0] ?? null,
+            'topBarrier' => $charts['barriers'][0] ?? null,
             'latestFeedback' => $latestFeedback,
         ]);
     }
@@ -142,5 +154,80 @@ class DashboardController extends Controller
         }
 
         return (int) round((($current - $previous) / $previous) * 100);
+    }
+
+    /**
+     * @param  Collection<int, array{label: string, value: int}>  $series
+     * @return array{line: string, area: string, points: array<int, array{x: float, y: float, label: string, value: int}>, baseline: int}
+     */
+    private function buildMomentumChart(Collection $series): array
+    {
+        $chartWidth = 760;
+        $horizontalPadding = 24;
+        $baseline = 205;
+        $plotHeight = 150;
+        $maxValue = max(1, (int) $series->max('value'));
+        $pointCount = max(1, $series->count() - 1);
+        $points = $series
+            ->values()
+            ->map(function (array $point, int $index) use ($chartWidth, $horizontalPadding, $baseline, $plotHeight, $maxValue, $pointCount): array {
+                return [
+                    'x' => $horizontalPadding + (($chartWidth - ($horizontalPadding * 2)) * ($index / $pointCount)),
+                    'y' => $baseline - (($point['value'] / $maxValue) * $plotHeight),
+                    'label' => $point['label'],
+                    'value' => $point['value'],
+                ];
+            })
+            ->all();
+        $linePath = $this->smoothPath($points);
+        $firstPoint = $points[0];
+        $lastPoint = $points[array_key_last($points)];
+        $areaPath = sprintf(
+            '%s L %.2F %d L %.2F %d Z',
+            $linePath,
+            $lastPoint['x'],
+            $baseline,
+            $firstPoint['x'],
+            $baseline,
+        );
+
+        return [
+            'line' => $linePath,
+            'area' => $areaPath,
+            'points' => $points,
+            'baseline' => $baseline,
+        ];
+    }
+
+    /**
+     * @param  array<int, array{x: float, y: float, label: string, value: int}>  $points
+     */
+    private function smoothPath(array $points): string
+    {
+        $path = sprintf('M %.2F %.2F', $points[0]['x'], $points[0]['y']);
+        $lastIndex = array_key_last($points);
+
+        for ($index = 0; $index < $lastIndex; $index++) {
+            $previous = $points[max(0, $index - 1)];
+            $current = $points[$index];
+            $next = $points[$index + 1];
+            $afterNext = $points[min($lastIndex, $index + 2)];
+            $controlOneX = $current['x'] + (($next['x'] - $previous['x']) / 6);
+            $controlOneY = $current['y'] + (($next['y'] - $previous['y']) / 6);
+            $controlTwoX = $next['x'] - (($afterNext['x'] - $current['x']) / 6);
+            $controlTwoY = $next['y'] - (($afterNext['y'] - $current['y']) / 6);
+
+            $path .= sprintf(
+                ' C %.2F %.2F %.2F %.2F %.2F %.2F',
+                $controlOneX,
+                $controlOneY,
+                $controlTwoX,
+                $controlTwoY,
+                $next['x'],
+                $next['y'],
+            );
+        }
+
+        return $path;
     }
 }

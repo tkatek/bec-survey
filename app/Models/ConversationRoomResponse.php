@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'survey_version',
+    'is_demo',
     'attendance_frequency',
     'attendance_change',
     'updated_room_use',
@@ -57,6 +58,7 @@ class ConversationRoomResponse extends Model
     {
         return [
             'survey_version' => 'integer',
+            'is_demo' => 'boolean',
         ];
     }
 }
