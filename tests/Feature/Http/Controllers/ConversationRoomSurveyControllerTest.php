@@ -2,44 +2,34 @@
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ConversationRoomSurveyControllerTest extends TestCase
 {
-    use RefreshDatabase;
-
-    public function test_guest_is_redirected_to_login_from_the_survey(): void
+    public function test_home_page_displays_the_public_student_survey(): void
     {
         $response = $this->get(route('conversation-room.create'));
 
-        $response->assertRedirect(route('login'));
+        $response
+            ->assertOk()
+            ->assertViewIs('conversation-room.create')
+            ->assertSee('Conversation Room Feedback Survey')
+            ->assertSee('How often have you attended the Conversation Room in the past month?');
     }
 
-    public function test_authenticated_user_can_view_the_survey(): void
+    public function test_conversation_room_path_redirects_to_the_student_survey(): void
     {
-        $user = User::factory()->create();
+        $response = $this->get('/conversation-room');
 
-        $response = $this
-            ->actingAs($user)
-            ->get(route('conversation-room.create'));
+        $response->assertRedirect(route('conversation-room.create'));
+    }
+
+    public function test_student_survey_contains_the_final_feedback_question(): void
+    {
+        $response = $this->get(route('conversation-room.create'));
 
         $response
             ->assertOk()
-            ->assertViewIs('conversation-room.create');
-    }
-
-    public function test_authenticated_user_can_view_the_thank_you_page(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->get(route('conversation-room.thank-you'));
-
-        $response
-            ->assertOk()
-            ->assertViewIs('conversation-room.thank-you');
+            ->assertSee('If you could change one thing about the Conversation Room, what would it be?');
     }
 }

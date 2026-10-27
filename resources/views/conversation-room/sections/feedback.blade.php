@@ -1,5 +1,50 @@
-<section aria-labelledby="feedback-heading">
-    <h3 id="feedback-heading" class="text-lg font-semibold text-gray-900">
-        {{ __('Your Feedback') }}
-    </h3>
+<section class="survey-step" x-cloak x-show="currentStep === 12" data-survey-step="12" aria-labelledby="question-13-title">
+    <div class="survey-question-heading">
+        <p>Your feedback</p>
+        <div>
+            <span class="survey-question-number">13</span>
+            <div>
+                <h2 id="question-13-title" data-question-title tabindex="-1">How likely are you to attend the Conversation Room in the next two weeks?</h2>
+                <span>Choose one answer.</span>
+            </div>
+        </div>
+    </div>
+
+    <fieldset class="survey-options">
+        <legend class="sr-only">Likelihood of attending in the next two weeks</legend>
+        @foreach (['Very likely', 'Somewhat likely', 'Not sure', 'Somewhat unlikely', 'Very unlikely'] as $option)
+            <label class="survey-option">
+                <input class="survey-option-input" type="radio" name="attendance_likelihood" value="{{ $option }}" x-model="answers.attendanceLikelihood">
+                <span class="survey-option-marker" aria-hidden="true">{{ $loop->iteration }}</span>
+                <span class="survey-option-copy">{{ $option }}</span>
+                <span class="survey-option-control" aria-hidden="true"></span>
+            </label>
+        @endforeach
+    </fieldset>
+</section>
+
+<section class="survey-step" x-cloak x-show="currentStep === 13" data-survey-step="13" aria-labelledby="question-14-title">
+    <div class="survey-question-heading">
+        <p>Your feedback</p>
+        <div>
+            <span class="survey-question-number">14</span>
+            <div>
+                <h2 id="question-14-title" data-question-title tabindex="-1">If you could change one thing about the Conversation Room, what would it be?</h2>
+                <span>This final answer is optional. Share as much or as little as you like.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="survey-text-response">
+        <label for="one-change">Your suggestion</label>
+        <textarea
+            id="one-change"
+            name="one_change"
+            rows="7"
+            maxlength="1000"
+            placeholder="For example: more evening sessions, smaller groups, or more time to speak..."
+            x-model="answers.oneChange"
+        ></textarea>
+        <span><span x-text="answers.oneChange.length"></span> / 1000</span>
+    </div>
 </section>
