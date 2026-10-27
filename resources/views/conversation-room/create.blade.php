@@ -65,7 +65,7 @@
             <symbol id="survey-icon-heart" viewBox="0 0 24 24"><path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"></path></symbol>
         </svg>
 
-        <main class="survey-layout" x-data="conversationRoomSurvey">
+        <main class="survey-layout" x-data="conversationRoomSurvey(@js($surveyConfiguration))">
             <aside class="survey-intro" data-survey-intro>
                 <div class="survey-intro-brand" data-intro-reveal>
                     <img src="{{ asset('images/conversation-room/boston-english-center-logo.png') }}" alt="Boston English Center">
@@ -127,34 +127,17 @@
                     </header>
 
                     <ol class="survey-section-track" aria-label="Survey sections" x-show="!isComplete">
-                        <li :class="{ 'is-active': isSectionActive(0), 'is-complete': isSectionComplete(0) }">
-                            <span>1</span>
-                            <em>Attendance</em>
-                        </li>
-                        <li :class="{ 'is-active': isSectionActive(1), 'is-complete': isSectionComplete(1) }">
-                            <span>2</span>
-                            <em>The updated room</em>
-                        </li>
-                        <li :class="{ 'is-active': isSectionActive(2), 'is-complete': isSectionComplete(2) }">
-                            <span>3</span>
-                            <em>Your preferences</em>
-                        </li>
-                        <li :class="{ 'is-active': isSectionActive(3), 'is-complete': isSectionComplete(3) }">
-                            <span>4</span>
-                            <em>Your feedback</em>
-                        </li>
+                        @foreach ($sections as $section)
+                            <li :class="{ 'is-active': isSectionActive({{ $loop->index }}), 'is-complete': isSectionComplete({{ $loop->index }}) }">
+                                <span>{{ $loop->iteration }}</span>
+                                <em>{{ $section }}</em>
+                            </li>
+                        @endforeach
                     </ol>
 
                     <div class="survey-progress" x-show="!isComplete">
                         <div class="survey-progress-copy">
-                            <span>Question <strong x-text="currentStep + 1"></strong> of 14</span>
-                            <span
-                                class="survey-option-page"
-                                x-cloak
-                                x-show="isCompactViewport && currentOptionPageCount > 1"
-                            >
-                                Options <strong x-text="currentOptionPage + 1"></strong> of <strong x-text="currentOptionPageCount"></strong>
-                            </span>
+                            <span>Question <strong x-text="currentStep + 1"></strong> of {{ $questions->count() }}</span>
                             <span><strong x-text="progressPercentage"></strong>% complete</span>
                         </div>
                         <div class="survey-progress-track" role="progressbar" :aria-valuenow="progressPercentage" aria-valuemin="0" aria-valuemax="100">
@@ -175,10 +158,9 @@
                     >
                         @csrf
                         <div class="survey-stage" x-ref="stage">
-                            @include('conversation-room.sections.attendance-participation')
-                            @include('conversation-room.sections.updated-conversation-room')
-                            @include('conversation-room.sections.preferences')
-                            @include('conversation-room.sections.feedback')
+                            @foreach ($questions as $question)
+                                @include('conversation-room.partials.question', ['question' => $question, 'step' => $loop->index])
+                            @endforeach
 
                             <section
                                 class="survey-complete"
@@ -225,8 +207,8 @@
                                 <button
                                     type="button"
                                     class="survey-button survey-button--secondary"
-                                    :class="{ 'is-hidden': currentStep === 0 && !hasPreviousOptionPage }"
-                                    :disabled="isAnimating || (currentStep === 0 && !hasPreviousOptionPage)"
+                                    :class="{ 'is-hidden': currentStep === 0 }"
+                                    :disabled="isAnimating || currentStep === 0"
                                     @click="previousQuestion"
                                 >
                                     <svg viewBox="0 0 24 24" aria-hidden="true">

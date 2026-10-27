@@ -1,23 +1,22 @@
 import Alpine from 'alpinejs';
 import { gsap } from 'gsap';
 
-const emptyAnswers = () => ({
-    attendanceFrequency: '',
-    attendanceChange: '',
-    attendanceReasons: [],
-    updatedRoomUse: '',
-    easeOfUse: '',
-    activityUsefulness: '',
-    speakingComfort: '',
-    sessionFormat: '',
-    encouragementChanges: [],
-    preferredSessionTime: '',
-    timeZone: '',
-    preferredDays: [],
-    sessionLength: '',
-    attendanceLikelihood: '',
-    oneChange: '',
-});
+const createAnswers = (questions = []) => Object.fromEntries(
+    questions.map((question) => {
+        if (question.type === 'multiple_choice') {
+            return [String(question.id), []];
+        }
+
+        if (question.type === 'grouped_choice') {
+            return [
+                String(question.id),
+                Object.fromEntries(question.groups.map((group) => [group, ''])),
+            ];
+        }
+
+        return [String(question.id), ''];
+    }),
+);
 
 const animateSurveyComplete = (container, prefersReducedMotion) => {
     if (!container) {
@@ -85,40 +84,19 @@ const animateSurveyComplete = (container, prefersReducedMotion) => {
         }, 0.55);
 };
 
-Alpine.data('conversationRoomSurvey', () => ({
-    answers: emptyAnswers(),
+Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
+    answers: createAnswers(configuration.questions),
     currentStep: 0,
     errorMessage: '',
     isAnimating: false,
     isComplete: false,
-    isCompactViewport: false,
-    optionPages: {
-        2: 0,
-        8: 0,
-        10: 0,
-    },
-    optionPageSizes: {
-        2: 6,
-        8: 5,
-        10: 7,
-    },
-    optionTotals: {
-        2: 12,
-        8: 10,
-        10: 7,
-    },
     prefersReducedMotion: false,
-    totalSteps: 14,
+    questions: configuration.questions ?? [],
+    sections: configuration.sections ?? [],
+    totalSteps: configuration.totalSteps ?? 0,
 
     init() {
         this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const compactViewport = window.matchMedia('(max-width: 640px)');
-
-        this.isCompactViewport = compactViewport.matches;
-        compactViewport.addEventListener('change', (event) => {
-            this.isCompactViewport = event.matches;
-        });
-
         if (this.prefersReducedMotion) {
             return;
         }
@@ -148,35 +126,7 @@ Alpine.data('conversationRoomSurvey', () => ({
     },
 
     get nextButtonLabel() {
-        if (this.hasNextOptionPage) {
-            return 'More options';
-        }
-
         return this.currentStep === this.totalSteps - 1 ? 'Submit survey' : 'Next question';
-    },
-
-    get currentOptionPage() {
-        return this.optionPages[this.currentStep] ?? 0;
-    },
-
-    get currentOptionPageCount() {
-        const pageSize = this.optionPageSizes[this.currentStep];
-        const optionTotal = this.optionTotals[this.currentStep];
-
-        if (!pageSize || !optionTotal) {
-            return 1;
-        }
-
-        return Math.ceil(optionTotal / pageSize);
-    },
-
-    get hasNextOptionPage() {
-        return this.isCompactViewport
-            && this.currentOptionPage < this.currentOptionPageCount - 1;
-    },
-
-    get hasPreviousOptionPage() {
-        return this.isCompactViewport && this.currentOptionPage > 0;
     },
 
     clearError() {
@@ -184,29 +134,23 @@ Alpine.data('conversationRoomSurvey', () => ({
     },
 
     isSectionActive(sectionIndex) {
-        const ranges = [[0, 2], [3, 7], [8, 11], [12, 13]];
-        const [start, end] = ranges[sectionIndex];
+        const section = this.sections[sectionIndex];
 
-        return this.currentStep >= start && this.currentStep <= end;
+        if (!section) {
+            return false;
+        }
+
+        return this.currentStep >= section.start && this.currentStep <= section.end;
     },
 
     isSectionComplete(sectionIndex) {
-        const sectionEndSteps = [2, 7, 11, 13];
+        const section = this.sections[sectionIndex];
 
-        return this.isComplete || this.currentStep > sectionEndSteps[sectionIndex];
-    },
-
-    isOptionVisible(questionStep, optionIndex) {
-        if (!this.isCompactViewport || !this.optionPageSizes[questionStep]) {
-            return true;
+        if (!section) {
+            return false;
         }
 
-        const pageSize = this.optionPageSizes[questionStep];
-        const page = this.optionPages[questionStep] ?? 0;
-        const firstVisibleOption = page * pageSize;
-
-        return optionIndex >= firstVisibleOption
-            && optionIndex < firstVisibleOption + pageSize;
+        return this.isComplete || this.currentStep > section.end;
     },
 
     limitSelections(field, maximum, event) {
@@ -232,18 +176,9 @@ Alpine.data('conversationRoomSurvey', () => ({
             return;
         }
 
-        if (this.hasNextOptionPage) {
-            this.errorMessage = '';
-            this.transitionStage(() => {
-                this.optionPages[this.currentStep] += 1;
-            }, 1);
-
-            return;
-        }
-
         if (!this.isCurrentStepComplete()) {
-            this.errorMessage = this.currentStep === 9
-                ? 'Choose a preferred time and a time zone to continue.'
+            this.errorMessage = this.questions[this.currentStep]?.type === 'grouped_choice'
+                ? 'Choose one answer from every group before continuing.'
                 : 'Choose an answer before continuing.';
             this.animateInvalidStep();
 
@@ -269,15 +204,6 @@ Alpine.data('conversationRoomSurvey', () => ({
             return;
         }
 
-        if (this.hasPreviousOptionPage) {
-            this.errorMessage = '';
-            this.transitionStage(() => {
-                this.optionPages[this.currentStep] -= 1;
-            }, -1);
-
-            return;
-        }
-
         if (this.currentStep === 0) {
             return;
         }
@@ -289,13 +215,8 @@ Alpine.data('conversationRoomSurvey', () => ({
     },
 
     restartSurvey() {
-        this.answers = emptyAnswers();
+        this.answers = createAnswers(this.questions);
         this.errorMessage = '';
-        this.optionPages = {
-            2: 0,
-            8: 0,
-            10: 0,
-        };
 
         this.transitionStage(() => {
             this.currentStep = 0;
@@ -313,33 +234,19 @@ Alpine.data('conversationRoomSurvey', () => ({
     },
 
     isCurrentStepComplete() {
-        const requiredAnswers = [
-            'attendanceFrequency',
-            'attendanceChange',
-            null,
-            'updatedRoomUse',
-            'easeOfUse',
-            'activityUsefulness',
-            'speakingComfort',
-            'sessionFormat',
-            'encouragementChanges',
-            ['preferredSessionTime', 'timeZone'],
-            'preferredDays',
-            'sessionLength',
-            'attendanceLikelihood',
-            null,
-        ];
-        const requirement = requiredAnswers[this.currentStep];
+        const question = this.questions[this.currentStep];
 
-        if (requirement === null) {
+        if (!question || !question.required) {
             return true;
         }
 
-        if (Array.isArray(requirement)) {
-            return requirement.every((field) => this.hasValue(this.answers[field]));
+        const answer = this.answers[String(question.id)];
+
+        if (question.type === 'grouped_choice') {
+            return question.groups.every((group) => this.hasValue(answer[group]));
         }
 
-        return this.hasValue(this.answers[requirement]);
+        return this.hasValue(answer);
     },
 
     hasValue(value) {
@@ -508,6 +415,39 @@ Alpine.data('surveyThankYou', () => ({
                     duration: 0.5,
                 }, 0.06);
         });
+    },
+}));
+
+Alpine.data('questionEditor', (initialOptions = [], initialType = 'single_choice') => ({
+    type: initialType,
+    options: initialOptions.length > 0
+        ? initialOptions.map((option, index) => ({ ...option, clientKey: `existing-${option.id ?? index}` }))
+        : [
+            { id: null, label: '', icon: 'message-circle', tone: 'blue', group_name: '', clientKey: 'new-1' },
+            { id: null, label: '', icon: 'message-circle', tone: 'green', group_name: '', clientKey: 'new-2' },
+        ],
+    nextOptionKey: initialOptions.length + 1,
+
+    addOption() {
+        this.nextOptionKey += 1;
+        const tones = ['blue', 'green', 'orange', 'purple', 'red'];
+
+        this.options.push({
+            id: null,
+            label: '',
+            icon: 'message-circle',
+            tone: tones[(this.options.length) % tones.length],
+            group_name: '',
+            clientKey: `new-${this.nextOptionKey}`,
+        });
+    },
+
+    removeOption(index) {
+        if (this.options.length <= 2) {
+            return;
+        }
+
+        this.options.splice(index, 1);
     },
 }));
 

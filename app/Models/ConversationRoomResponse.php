@@ -39,6 +39,16 @@ class ConversationRoomResponse extends Model
     }
 
     /**
+     * Get the normalized answers recorded for the response.
+     *
+     * @return HasMany<SurveyAnswer, $this>
+     */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(SurveyAnswer::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
