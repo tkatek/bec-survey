@@ -354,6 +354,9 @@ Alpine.data('conversationRoomSurvey', () => ({
 
     transitionStage(updateState, direction) {
         const stage = this.$refs.stage;
+        const getActiveContent = () => this.isComplete
+            ? stage.querySelector('[data-survey-complete]')
+            : stage.querySelector(`[data-survey-step="${this.currentStep}"]`);
 
         if (this.prefersReducedMotion) {
             updateState();
@@ -367,33 +370,86 @@ Alpine.data('conversationRoomSurvey', () => ({
         }
 
         this.isAnimating = true;
+        const outgoingContent = getActiveContent();
 
-        gsap.to(stage, {
+        gsap.killTweensOf(stage);
+        gsap.killTweensOf(outgoingContent);
+        gsap.set(stage, { clearProps: 'transform' });
+
+        gsap.to(outgoingContent, {
             opacity: 0,
-            x: direction * -28,
-            duration: 0.22,
-            ease: 'power2.in',
+            y: direction * -8,
+            duration: 0.12,
+            ease: 'power1.out',
+            overwrite: true,
             onComplete: () => {
+                gsap.set(outgoingContent, { clearProps: 'opacity,transform,visibility' });
                 updateState();
 
                 this.$nextTick(() => {
-                    gsap.fromTo(stage, {
+                    const incomingContent = getActiveContent();
+                    const finishTransition = () => {
+                        this.isAnimating = false;
+                        this.focusCurrentContent();
+
+                        if (this.isComplete) {
+                            this.animateCompletion();
+                        }
+                    };
+                    const questionHeading = incomingContent.querySelector('.survey-question-heading');
+                    const optionCards = Array.from(incomingContent.querySelectorAll('.survey-option'))
+                        .filter((option) => getComputedStyle(option).display !== 'none');
+
+                    gsap.killTweensOf([incomingContent, questionHeading, ...optionCards].filter(Boolean));
+
+                    if (optionCards.length === 0) {
+                        gsap.fromTo(incomingContent, {
+                            opacity: 0,
+                            y: direction * 8,
+                        }, {
+                            opacity: 1,
+                            y: 0,
+                            duration: 0.18,
+                            ease: 'power2.out',
+                            overwrite: true,
+                            clearProps: 'opacity,transform,visibility',
+                            onComplete: finishTransition,
+                        });
+
+                        return;
+                    }
+
+                    const optionStagger = Math.min(0.035, 0.16 / Math.max(optionCards.length - 1, 1));
+                    const timeline = gsap.timeline({ onComplete: finishTransition });
+
+                    gsap.set(incomingContent, { clearProps: 'opacity,transform,visibility' });
+
+                    if (questionHeading) {
+                        timeline.fromTo(questionHeading, {
+                            opacity: 0,
+                            y: direction * 8,
+                        }, {
+                            opacity: 1,
+                            y: 0,
+                            duration: 0.18,
+                            ease: 'power2.out',
+                            clearProps: 'opacity,transform,visibility',
+                        });
+                    }
+
+                    timeline.fromTo(optionCards, {
                         opacity: 0,
-                        x: direction * 28,
+                        y: direction * 12,
+                        scale: 0.985,
                     }, {
                         opacity: 1,
-                        x: 0,
-                        duration: 0.42,
-                        ease: 'power3.out',
-                        onComplete: () => {
-                            this.isAnimating = false;
-                            this.focusCurrentContent();
-
-                            if (this.isComplete) {
-                                this.animateCompletion();
-                            }
-                        },
-                    });
+                        y: 0,
+                        scale: 1,
+                        duration: 0.24,
+                        stagger: optionStagger,
+                        ease: 'power2.out',
+                        clearProps: 'opacity,transform,visibility',
+                    }, questionHeading ? 0.04 : 0);
                 });
             },
         });

@@ -9,7 +9,7 @@
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
-        <link rel="preload" as="image" href="{{ asset('images/conversation-room/conversation-student.webp') }}">
+        <link rel="preload" as="image" href="{{ asset('images/conversation-room/conversation-room-background.webp') }}">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -157,7 +157,7 @@
                         </div>
                     </div>
 
-                    <form class="survey-form" @submit.prevent="nextQuestion" @change="clearError" @input="clearError" novalidate>
+                    <form class="survey-form" :aria-busy="isAnimating.toString()" @submit.prevent="nextQuestion" @change="clearError" @input="clearError" novalidate>
                         <div class="survey-stage" x-ref="stage">
                             @include('conversation-room.sections.attendance-participation')
                             @include('conversation-room.sections.updated-conversation-room')
@@ -210,7 +210,7 @@
                                     type="button"
                                     class="survey-button survey-button--secondary"
                                     :class="{ 'is-hidden': currentStep === 0 && !hasPreviousOptionPage }"
-                                    :disabled="currentStep === 0 && !hasPreviousOptionPage"
+                                    :disabled="isAnimating || (currentStep === 0 && !hasPreviousOptionPage)"
                                     @click="previousQuestion"
                                 >
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -219,7 +219,7 @@
                                     Back
                                 </button>
 
-                                <button type="submit" class="survey-button survey-button--primary">
+                                <button type="submit" class="survey-button survey-button--primary" :disabled="isAnimating">
                                     <span x-text="nextButtonLabel"></span>
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="m9 18 6-6-6-6" />
