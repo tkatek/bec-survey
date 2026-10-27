@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ConversationRoomResponse;
 use App\Models\SurveyAnswer;
 use App\Models\SurveyQuestion;
+use App\Models\SurveyVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -37,8 +38,12 @@ class DashboardController extends Controller
         $previousPeriodResponses = ConversationRoomResponse::query()
             ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
             ->count();
-        $questions = SurveyQuestion::query()
-            ->with(['options' => fn ($query) => $query->where('is_active', true)])
+        $activeVersion = SurveyVersion::query()->active()->firstOrFail();
+        $questions = $activeVersion->questions()
+            ->with([
+                'surveySection',
+                'options' => fn ($query) => $query->where('is_active', true),
+            ])
             ->ordered()
             ->get()
             ->keyBy('key');
@@ -51,9 +56,13 @@ class DashboardController extends Controller
             'preferred_session_time',
             'attendance_likelihood',
         ];
-        $questionIds = $questions
-            ->filter(fn (SurveyQuestion $question, string $key): bool => in_array($key, $chartKeys, true))
-            ->pluck('id');
+        $questionIdsByKey = SurveyQuestion::query()
+            ->whereIn('key', [...$chartKeys, 'one_change'])
+            ->whereHas('version', fn ($query) => $query->where('status', '!=', SurveyVersion::STATUS_DRAFT))
+            ->get(['id', 'key'])
+            ->groupBy('key')
+            ->map(fn (Collection $revisions): Collection => $revisions->pluck('id'));
+        $questionIds = $questionIdsByKey->flatten();
         $answerCounts = SurveyAnswer::query()
             ->select([
                 'survey_question_id',
@@ -66,16 +75,18 @@ class DashboardController extends Controller
             ->groupBy('survey_question_id', 'answer_value', 'group_name')
             ->get()
             ->groupBy('survey_question_id');
-        $buildChart = function (string $key, ?string $groupName = null, ?int $limit = null) use ($questions, $answerCounts, $periodResponses): array {
+        $buildChart = function (string $key, ?string $groupName = null, ?int $limit = null) use ($questions, $questionIdsByKey, $answerCounts, $periodResponses): array {
             $question = $questions->get($key);
 
             if (! $question) {
                 return [];
             }
 
-            $counts = $answerCounts->get($question->id, collect())
+            $counts = collect($questionIdsByKey->get($key, collect()))
+                ->flatMap(fn (int $questionId): Collection => $answerCounts->get($questionId, collect()))
                 ->when($groupName, fn (Collection $rows) => $rows->where('group_name', $groupName))
-                ->pluck('aggregate', 'answer_value');
+                ->groupBy('answer_value')
+                ->map(fn (Collection $rows): int => (int) $rows->sum('aggregate'));
             $options = $question->options
                 ->when($groupName, fn (Collection $options) => $options->where('group_name', $groupName))
                 ->map(fn ($option): array => [
@@ -110,10 +121,10 @@ class DashboardController extends Controller
                     'value' => (int) ($seriesCounts[$date->toDateString()] ?? 0),
                 ];
             });
-        $feedbackQuestion = $questions->get('one_change');
-        $latestFeedback = $feedbackQuestion
+        $feedbackQuestionIds = $questionIdsByKey->get('one_change', collect());
+        $latestFeedback = $feedbackQuestionIds->isNotEmpty()
             ? SurveyAnswer::query()
-                ->where('survey_question_id', $feedbackQuestion->id)
+                ->whereIn('survey_question_id', $feedbackQuestionIds)
                 ->whereNotNull('answer_value')
                 ->where('answer_value', '!=', '')
                 ->whereHas('response', fn ($query) => $query->where('created_at', '>=', $periodStart))
@@ -134,7 +145,9 @@ class DashboardController extends Controller
             'periodResponses' => $periodResponses,
             'demoResponses' => $demoResponses,
             'responseTrend' => $this->percentageChange($periodResponses, $previousPeriodResponses),
-            'activeQuestions' => $questions->where('is_active', true)->count(),
+            'activeQuestions' => $questions
+                ->filter(fn (SurveyQuestion $question): bool => $question->is_active && (bool) $question->surveySection?->is_active)
+                ->count(),
             'positiveUsefulnessPercentage' => $periodResponses > 0 ? (int) round(($positiveUsefulness / $periodResponses) * 100) : 0,
             'likelyToAttendPercentage' => $periodResponses > 0 ? (int) round(($likelyToAttend / $periodResponses) * 100) : 0,
             'responseSeries' => $responseSeries,

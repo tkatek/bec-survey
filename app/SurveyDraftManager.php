@@ -228,10 +228,10 @@ class SurveyDraftManager
                 ? $this->questionInVersion($draft, $sourceQuestion->stable_id)
                 : null;
             $oldSection = $question?->surveySection;
-            $requestedPosition = (int) ($data['position'] ?? PHP_INT_MAX);
+            $requestedPosition = (int) ($data['position'] ?? 65535);
 
             if ($question && $oldSection && $oldSection->isNot($section)) {
-                $question->update(['sort_order' => PHP_INT_MAX]);
+                $question->update(['sort_order' => 65535]);
                 $this->normalizeQuestionPositions($oldSection);
             }
 
@@ -370,9 +370,14 @@ class SurveyDraftManager
             $question = $this->questionInVersion($draft, $sourceQuestion->stable_id);
             $ordered = $question->surveySection->questions()->orderBy('sort_order')->orderBy('id')->get();
             $index = $ordered->search(fn (SurveyQuestion $item): bool => $item->is($question));
+
+            if ($index === false) {
+                return;
+            }
+
             $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
 
-            if ($index === false || ! $ordered->has($targetIndex)) {
+            if (! $ordered->has($targetIndex)) {
                 return;
             }
 
@@ -471,9 +476,14 @@ class SurveyDraftManager
             $section = $this->sectionInVersion($draft, $sourceSection->stable_id);
             $ordered = $draft->sections()->orderBy('sort_order')->orderBy('id')->get();
             $index = $ordered->search(fn (SurveySection $item): bool => $item->is($section));
+
+            if ($index === false) {
+                return;
+            }
+
             $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
 
-            if ($index === false || ! $ordered->has($targetIndex)) {
+            if (! $ordered->has($targetIndex)) {
                 return;
             }
 

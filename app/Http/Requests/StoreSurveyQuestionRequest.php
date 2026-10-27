@@ -41,6 +41,7 @@ class StoreSurveyQuestionRequest extends FormRequest
                 'max:20',
             ],
             'options' => [
+                Rule::excludeIf($this->input('type') === SurveyQuestion::TYPE_LONG_TEXT),
                 Rule::requiredIf($this->input('type') !== SurveyQuestion::TYPE_LONG_TEXT),
                 'array',
                 'min:2',

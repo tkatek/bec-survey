@@ -535,6 +535,10 @@ export const surveyQuestionManager = (initialState, configuration) => ({
     },
 
     previewProgress() {
+        if (!this.preview) {
+            return 0;
+        }
+
         const total = Math.max(1, this.state.totalQuestions + (this.editorMode === 'create' ? 1 : 0));
 
         return Math.min(100, Math.round((this.preview.number / total) * 100));
@@ -818,6 +822,11 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             }
         } else if (drag.kind === 'section') {
             const sourceIndex = this.state.sections.findIndex((section) => section.stableId === drag.stableId);
+
+            if (sourceIndex < 0) {
+                return;
+            }
+
             const [section] = this.state.sections.splice(sourceIndex, 1);
             let targetIndex = drag.targetIndex;
 
@@ -840,6 +849,11 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             }
         } else if (drag.kind === 'option') {
             const sourceIndex = this.editor.options.findIndex((option) => option.clientId === drag.clientId);
+
+            if (sourceIndex < 0) {
+                return;
+            }
+
             const [option] = this.editor.options.splice(sourceIndex, 1);
             let targetIndex = drag.targetIndex;
 

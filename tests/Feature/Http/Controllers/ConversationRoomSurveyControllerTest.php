@@ -4,6 +4,7 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
+use App\Models\SurveyVersion;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -55,7 +56,9 @@ class ConversationRoomSurveyControllerTest extends TestCase
         $this->seed(SurveyQuestionSeeder::class);
 
         $this->from(route('conversation-room.create'))
-            ->post(route('conversation-room.store'))
+            ->post(route('conversation-room.store'), [
+                'survey_version' => SurveyVersion::query()->active()->value('number'),
+            ])
             ->assertRedirect(route('conversation-room.create'))
             ->assertSessionHasErrors(['answers']);
 
@@ -121,6 +124,9 @@ class ConversationRoomSurveyControllerTest extends TestCase
             };
         }
 
-        return ['answers' => $answers];
+        return [
+            'survey_version' => SurveyVersion::query()->active()->value('number'),
+            'answers' => $answers,
+        ];
     }
 }
