@@ -1,6 +1,8 @@
 import Alpine from 'alpinejs';
+import Chart from 'chart.js/auto';
 import { gsap } from 'gsap';
 import { surveyQuestionManager } from './survey-question-manager';
+import { buildVisibleSectionSteps, getSectionTrackDensity } from './survey-stepper';
 
 const createAnswers = (questions = []) => Object.fromEntries(
     questions.map((question) => {
@@ -94,10 +96,21 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
     isPreview: configuration.isPreview ?? false,
     prefersReducedMotion: false,
     questions: configuration.questions ?? [],
+    resizeFrame: null,
+    resizeHandler: null,
     sections: configuration.sections ?? [],
     totalSteps: configuration.totalSteps ?? 0,
+    viewportWidth: 1280,
 
     init() {
+        this.viewportWidth = window.innerWidth;
+        this.resizeHandler = () => {
+            window.cancelAnimationFrame(this.resizeFrame);
+            this.resizeFrame = window.requestAnimationFrame(() => {
+                this.viewportWidth = window.innerWidth;
+            });
+        };
+        window.addEventListener('resize', this.resizeHandler, { passive: true });
         this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (this.prefersReducedMotion) {
             return;
@@ -119,6 +132,11 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
         });
     },
 
+    destroy() {
+        window.removeEventListener('resize', this.resizeHandler);
+        window.cancelAnimationFrame(this.resizeFrame);
+    },
+
     get progressPercentage() {
         if (this.isComplete) {
             return 100;
@@ -135,28 +153,21 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
         return this.isPreview ? 'Finish preview' : 'Submit survey';
     },
 
+    get sectionTrackDensity() {
+        return getSectionTrackDensity(this.sections.length, this.viewportWidth);
+    },
+
+    get visibleSectionSteps() {
+        return buildVisibleSectionSteps(
+            this.sections,
+            this.currentStep,
+            this.viewportWidth,
+            this.isComplete,
+        );
+    },
+
     clearError() {
         this.errorMessage = '';
-    },
-
-    isSectionActive(sectionIndex) {
-        const section = this.sections[sectionIndex];
-
-        if (!section) {
-            return false;
-        }
-
-        return this.currentStep >= section.start && this.currentStep <= section.end;
-    },
-
-    isSectionComplete(sectionIndex) {
-        const section = this.sections[sectionIndex];
-
-        if (!section) {
-            return false;
-        }
-
-        return this.isComplete || this.currentStep > section.end;
     },
 
     limitSelections(field, maximum, event) {
@@ -432,78 +443,393 @@ Alpine.data('surveyThankYou', () => ({
     },
 }));
 
-Alpine.data('dashboardAnalytics', () => ({
+Alpine.data('dashboardAnalytics', (config) => ({
+    analytics: config.analytics,
+    snapshotToken: config.snapshotToken,
+    loading: false,
+    exporting: false,
+    errorMessage: '',
+    calendarOpen: false,
+    calendarMode: 'range',
+    calendarError: '',
+    rowTooltip: null,
+    abortController: null,
+    charts: {},
+    animated: { responses: 0, positive: 0 },
+    colors: ['#1457ff', '#2bcf9b', '#ffbb3d', '#9a63ed', '#ff5f78', '#1bb7d8'],
+    softColors: ['#e8f0ff', '#e7faf4', '#fff5df', '#f4ebff', '#ffecef', '#e7f8fc'],
+    presets: [
+        { value: 'today', label: 'Today' },
+        { value: 'last7', label: 'Last 7 days' },
+        { value: 'month', label: 'This month' },
+    ],
+    filter: {
+        preset: config.analytics.meta.filter.preset,
+        start: config.analytics.meta.filter.start,
+        end: config.analytics.meta.filter.end,
+        version: config.analytics.meta.version,
+    },
+    draftStart: config.analytics.meta.filter.start,
+    draftEnd: config.analytics.meta.filter.end,
+    today: new Date().toLocaleDateString('en-CA'),
+
     init() {
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const counters = Array.from(this.$root.querySelectorAll('[data-count-up]'));
+        this.animateCounters();
+        this.$nextTick(() => this.renderCharts());
+    },
 
-        const setCounterValue = (element, value) => {
-            const prefix = element.dataset.prefix ?? '';
-            const suffix = element.dataset.suffix ?? '';
+    async refresh() {
+        this.abortController?.abort();
+        this.abortController = new AbortController();
+        this.loading = true;
+        this.errorMessage = '';
 
-            element.textContent = `${prefix}${Math.round(value).toLocaleString()}${suffix}`;
-        };
+        const query = new URLSearchParams({
+            preset: this.filter.preset,
+            version: String(this.filter.version),
+        });
 
-        if (prefersReducedMotion) {
-            counters.forEach((counter) => setCounterValue(counter, Number(counter.dataset.countUp ?? 0)));
+        if (this.filter.preset === 'custom') {
+            query.set('start', this.filter.start);
+            query.set('end', this.filter.end);
+        }
 
+        try {
+            const response = await fetch(`${config.dataUrl}?${query.toString()}`, {
+                headers: { Accept: 'application/json' },
+                signal: this.abortController.signal,
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.message ?? 'The analytics could not be refreshed.');
+            }
+
+            const payload = await response.json();
+            this.analytics = payload.analytics;
+            this.snapshotToken = payload.snapshotToken;
+            this.filter.start = payload.analytics.meta.filter.start;
+            this.filter.end = payload.analytics.meta.filter.end;
+            this.draftStart = this.filter.start;
+            this.draftEnd = this.filter.end;
+            window.history.replaceState({}, '', `${config.dashboardUrl}?${new URLSearchParams(payload.analytics.meta.query).toString()}`);
+            this.animateCounters();
+            await this.$nextTick();
+            this.renderCharts();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                this.errorMessage = error.message;
+            }
+        } finally {
+            if (!this.abortController?.signal.aborted) {
+                this.loading = false;
+            }
+        }
+    },
+
+    applyPreset(preset) {
+        this.filter.preset = preset;
+        this.calendarOpen = false;
+        this.refresh();
+    },
+
+    applyCustomDates() {
+        this.calendarError = '';
+
+        if (!this.draftStart || !this.draftEnd) {
+            this.calendarError = 'Choose both a start date and an end date.';
             return;
         }
 
-        this.$nextTick(() => {
-            const statCards = Array.from(this.$root.querySelectorAll('[data-dashboard-stat]'));
-            const horizontalBars = Array.from(this.$root.querySelectorAll('[data-dashboard-bar]'));
-            const verticalBars = Array.from(this.$root.querySelectorAll('[data-dashboard-column]'));
-            const chartReveal = this.$root.querySelector('[data-dashboard-chart-reveal]');
-            const donut = this.$root.querySelector('[data-dashboard-donut]');
+        if (this.draftStart > this.draftEnd) {
+            this.calendarError = 'The end date must be on or after the start date.';
+            return;
+        }
 
-            gsap.timeline({ defaults: { ease: 'power3.out' } })
-                .from(statCards, {
-                    opacity: 0,
-                    y: 16,
-                    duration: 0.42,
-                    stagger: 0.055,
-                })
-                .fromTo(chartReveal, {
-                    attr: { width: 0 },
-                }, {
-                    attr: { width: 760 },
-                    duration: 0.9,
-                    ease: 'power2.inOut',
-                }, 0.18)
-                .from(donut, {
-                    opacity: 0,
-                    rotate: -18,
-                    scale: 0.72,
-                    duration: 0.62,
-                }, 0.28)
-                .from(horizontalBars, {
-                    scaleX: 0,
-                    transformOrigin: 'left center',
-                    duration: 0.62,
-                    stagger: 0.025,
-                }, 0.34)
-                .from(verticalBars, {
-                    scaleY: 0,
-                    transformOrigin: 'center bottom',
-                    duration: 0.62,
-                    stagger: 0.05,
-                }, 0.38);
+        this.filter.preset = 'custom';
+        this.filter.start = this.draftStart;
+        this.filter.end = this.calendarMode === 'date' ? this.draftStart : this.draftEnd;
+        this.calendarOpen = false;
+        this.refresh();
+    },
 
-            counters.forEach((counter, index) => {
-                const targetValue = Number(counter.dataset.countUp ?? 0);
-                const animatedValue = { value: 0 };
+    setTodayDraft() {
+        this.draftStart = this.today;
+        this.draftEnd = this.today;
+        this.calendarMode = 'date';
+    },
 
-                gsap.to(animatedValue, {
-                    value: targetValue,
-                    duration: 0.85,
-                    delay: 0.08 + (index * 0.04),
-                    ease: 'power2.out',
-                    onUpdate: () => setCounterValue(counter, animatedValue.value),
-                    onComplete: () => setCounterValue(counter, targetValue),
-                });
-            });
+    closeCalendar() {
+        this.calendarOpen = false;
+        this.calendarError = '';
+        this.$nextTick(() => this.$refs.calendarTrigger?.focus());
+    },
+
+    animateCounters() {
+        const targets = {
+            responses: Number(this.analytics.overview.responses ?? 0),
+            positive: Number(this.analytics.overview.positiveActivity.percentage ?? 0),
+        };
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.animated = targets;
+            return;
+        }
+
+        gsap.killTweensOf(this.animated);
+        this.animated.responses = 0;
+        this.animated.positive = 0;
+        gsap.to(this.animated, {
+            ...targets,
+            duration: 0.85,
+            ease: 'power2.out',
         });
+    },
+
+    renderCharts() {
+        Object.values(this.charts).forEach((chart) => {
+            chart?.stop();
+            chart?.destroy();
+        });
+        this.charts = {};
+        this.charts.responses = this.renderResponsesChart();
+        this.charts.attendance = this.renderDoughnutChart();
+        this.charts.barriers = this.renderBarChart('barriersChart', this.analytics.dashboard.barriers, true);
+        this.charts.preferredTime = this.renderBarChart('preferredTimeChart', this.analytics.dashboard.preferredTime);
+        this.charts.likelihood = this.renderBarChart('likelihoodChart', this.analytics.dashboard.likelihood);
+    },
+
+    renderResponsesChart() {
+        if (!this.$refs.responsesChart) {
+            return null;
+        }
+
+        const context = this.$refs.responsesChart.getContext('2d');
+        const gradient = context.createLinearGradient(0, 0, 0, 280);
+        gradient.addColorStop(0, 'rgba(20, 87, 255, .28)');
+        gradient.addColorStop(1, 'rgba(20, 87, 255, 0)');
+
+        return new Chart(context, {
+            type: 'line',
+            data: {
+                labels: this.analytics.series.points.map((point) => point.label),
+                datasets: [{
+                    data: this.analytics.series.points.map((point) => point.value),
+                    borderColor: '#1457ff',
+                    backgroundColor: gradient,
+                    fill: true,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#1457ff',
+                    pointBorderWidth: 2,
+                    pointRadius: this.analytics.series.points.length > 35 ? 0 : 3,
+                    pointHoverRadius: 6,
+                    tension: 0.36,
+                }],
+            },
+            options: this.chartOptions({
+                interaction: { mode: 'index', intersect: false, axis: 'x' },
+                tooltip: (contextItem) => {
+                    const point = this.analytics.series.points[contextItem.dataIndex];
+                    const responseLabel = point.value === 1 ? 'response' : 'responses';
+                    const dateLines = String(point.fullLabel)
+                        .split(' – ')
+                        .flatMap((part) => this.wrapTooltipText(part, 30));
+
+                    return [
+                        `${point.value} ${responseLabel}`,
+                        ...dateLines,
+                        this.analytics.series.timezone,
+                    ];
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 9, color: '#71809d' } },
+                    y: { beginAtZero: true, grid: { color: '#edf1f7' }, ticks: { precision: 0, color: '#71809d' } },
+                },
+            }),
+        });
+    },
+
+    renderDoughnutChart() {
+        const distribution = this.distribution(this.analytics.dashboard.attendance);
+
+        if (!this.$refs.attendanceChart) {
+            return null;
+        }
+
+        const centerLabel = {
+            id: 'attendanceCenterLabel',
+            beforeDraw: (chart) => {
+                const { ctx, chartArea } = chart;
+
+                if (!chartArea) {
+                    return;
+                }
+
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#0b1739';
+                ctx.font = '800 24px Plus Jakarta Sans';
+                ctx.fillText(String(distribution.answered), (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 - 2);
+                ctx.fillStyle = '#71809d';
+                ctx.font = '600 11px Plus Jakarta Sans';
+                ctx.fillText(distribution.answered === 1 ? 'answering Q1' : 'answering Q1', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 18);
+                ctx.restore();
+            },
+        };
+
+        return new Chart(this.$refs.attendanceChart, {
+            type: 'doughnut',
+            data: {
+                labels: distribution.options.map((item) => item.label),
+                datasets: [{
+                    data: distribution.options.map((item) => item.count),
+                    backgroundColor: this.colors,
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 8,
+                }],
+            },
+            options: this.chartOptions({
+                cutout: '66%',
+                tooltip: (contextItem) => this.tooltipLabel(contextItem, distribution.answered),
+            }),
+            plugins: [centerLabel],
+        });
+    },
+
+    renderBarChart(ref, question, horizontal = false) {
+        const canvas = this.$refs[ref];
+        const distribution = this.distribution(question);
+
+        if (!canvas) {
+            return null;
+        }
+
+        const options = horizontal
+            ? distribution.options
+                .map((item, index) => ({ ...item, originalOrder: index }))
+                .sort((left, right) => (right.count - left.count) || (left.originalOrder - right.originalOrder))
+                .slice(0, 6)
+            : distribution.options;
+
+        return new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: options.map((item) => item.label),
+                datasets: [{
+                    data: options.map((item) => item.count),
+                    backgroundColor: options.map((item, index) => this.colors[index % this.colors.length]),
+                    borderRadius: 7,
+                    borderSkipped: false,
+                    maxBarThickness: horizontal ? 24 : 48,
+                }],
+            },
+            options: this.chartOptions({
+                indexAxis: horizontal ? 'y' : 'x',
+                tooltip: (contextItem) => this.tooltipLabel(contextItem, distribution.answered),
+                scales: horizontal
+                    ? {
+                        x: { beginAtZero: true, grid: { color: '#edf1f7' }, ticks: { precision: 0, color: '#71809d' } },
+                        y: { grid: { display: false }, ticks: { color: '#52658b', autoSkip: false } },
+                    }
+                    : {
+                        x: { grid: { display: false }, ticks: { color: '#71809d', maxRotation: 28, minRotation: 0 } },
+                        y: { beginAtZero: true, grid: { color: '#edf1f7' }, ticks: { precision: 0, color: '#71809d' } },
+                    },
+            }),
+        });
+    },
+
+    chartOptions({ tooltip, ...options }) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 700 },
+            interaction: { mode: 'nearest', intersect: true },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    displayColors: true,
+                    backgroundColor: '#0b1739',
+                    padding: 12,
+                    titleFont: { family: 'Plus Jakarta Sans', size: 14, weight: '700' },
+                    bodyFont: { family: 'Plus Jakarta Sans', size: 14 },
+                    callbacks: {
+                        title: (items) => this.wrapTooltipText(items[0]?.label ?? '', 30),
+                        label: tooltip,
+                    },
+                },
+            },
+            ...options,
+        };
+    },
+
+    tooltipLabel(contextItem, denominator) {
+        const count = Number(contextItem.raw ?? 0);
+        const percentage = denominator > 0 ? ((count / denominator) * 100).toFixed(1) : '0.0';
+        const responseLabel = count === 1 ? 'response' : 'responses';
+
+        return [
+            `${count} ${responseLabel} · ${percentage}%`,
+            `Of ${denominator} answering this question`,
+        ];
+    },
+
+    wrapTooltipText(value, maxCharacters = 30) {
+        const words = String(value).split(/\s+/).filter(Boolean);
+        const lines = [];
+        let line = '';
+
+        words.forEach((word) => {
+            const candidate = line ? `${line} ${word}` : word;
+
+            if (candidate.length > maxCharacters && line) {
+                lines.push(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
+        });
+
+        if (line) {
+            lines.push(line);
+        }
+
+        return lines;
+    },
+
+    distribution(question, group = null) {
+        const distributions = question?.distributions ?? [];
+        return distributions.find((item) => item.group === group)
+            ?? distributions[0]
+            ?? { answered: 0, options: [] };
+    },
+
+    rankedOptions(question) {
+        return [...this.distribution(question).options].sort((left, right) => right.count - left.count);
+    },
+
+    formatNumber(value) {
+        return Math.round(Number(value ?? 0)).toLocaleString();
+    },
+
+    formatPercent(value) {
+        return value === null || value === undefined ? 'N/A' : `${Number(value).toFixed(Number(value) % 1 ? 1 : 0)}%`;
+    },
+
+    detailUrl(question) {
+        const query = new URLSearchParams({ ...this.analytics.meta.query, question });
+        return `${config.commonAnswersUrl}?${query.toString()}`;
+    },
+
+    feedbackUrl() {
+        const query = new URLSearchParams({ ...this.analytics.meta.query, tab: 'feedback' });
+        return `${config.commonAnswersUrl}?${query.toString()}`;
+    },
+
+    showRowTooltip(item, denominator) {
+        this.rowTooltip = { ...item, denominator };
     },
 }));
 

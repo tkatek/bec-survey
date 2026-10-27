@@ -91,6 +91,19 @@ class SurveyQuestionControllerTest extends TestCase
         $this->assertDatabaseMissing('survey_questions', ['prompt' => 'Which topic?']);
     }
 
+    public function test_option_identifiers_cannot_be_reused_from_another_question(): void
+    {
+        $questions = SurveyQuestion::query()->with(['options', 'surveySection'])->orderBy('id')->take(2)->get();
+        $question = $questions->first();
+        $payload = $this->questionPayload($question->surveySection, $question->prompt);
+        $payload['options'][0]['stable_id'] = $questions->last()->options->first()->stable_id;
+
+        $this->actingAs(User::factory()->administrator()->create())
+            ->putJson(route('admin.questions.update', $question), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('options.0.stable_id');
+    }
+
     public function test_edit_duplicate_and_delete_only_change_the_draft_and_preserve_historical_answers(): void
     {
         $admin = User::factory()->administrator()->create();

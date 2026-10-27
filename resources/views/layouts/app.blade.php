@@ -11,7 +11,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="min-h-screen overflow-x-hidden bg-[#f4f7ff] font-['Plus_Jakarta_Sans'] text-[#071326] antialiased">
-        <div x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false" class="min-h-screen">
+        <div x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false" class="admin-shell min-h-screen">
             <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-[#071326]/45 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false" aria-hidden="true"></div>
 
             <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#dce5f2] bg-white px-4 py-6 transition-transform duration-200 ease-out lg:translate-x-0" aria-label="Administrator navigation">
@@ -29,13 +29,9 @@
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 12 4l9 8v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z" /></svg>
                         Dashboard
                     </a>
-                    <a href="{{ route('dashboard') }}#survey-results" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#53668d] transition hover:bg-slate-50 hover:text-[#071326] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
-                        Survey Results
-                    </a>
-                    <a href="{{ route('dashboard') }}#responses" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-[#53668d] transition hover:bg-slate-50 hover:text-[#071326] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="3.5" cy="6" r="1" /><circle cx="3.5" cy="12" r="1" /><circle cx="3.5" cy="18" r="1" /></svg>
-                        Responses
+                    <a href="{{ route('admin.common-answers') }}" @class(['relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]', 'bg-[#edf3ff] text-[#1357e8] before:absolute before:-left-4 before:h-9 before:w-1 before:rounded-r-full before:bg-[#1357e8]' => request()->routeIs('admin.common-answers'), 'text-[#53668d] hover:bg-slate-50 hover:text-[#071326]' => ! request()->routeIs('admin.common-answers')])>
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7" /><path d="m17 15 3 3 3-4" /></svg>
+                        Common Answers
                     </a>
                     <a href="{{ route('admin.questions.index') }}" @class(['relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]', 'bg-[#edf3ff] text-[#1357e8] before:absolute before:-left-4 before:h-9 before:w-1 before:rounded-r-full before:bg-[#1357e8]' => request()->routeIs('admin.questions.*'), 'text-[#53668d] hover:bg-slate-50 hover:text-[#071326]' => ! request()->routeIs('admin.questions.*')])>
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>
@@ -47,7 +43,12 @@
                     </a>
                 </nav>
 
-                <div class="mt-auto rounded-2xl bg-[#071326] p-4 text-white">
+                <div class="mt-auto grid gap-3">
+                    <a href="{{ route('conversation-room.create') }}" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl border border-[#dce5f2] bg-white px-3 py-2.5 text-xs font-bold text-[#1357e8] transition hover:border-[#1357e8] hover:bg-[#f5f8ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
+                        Open student survey
+                    </a>
+                    <div class="rounded-2xl bg-[#071326] p-4 text-white">
                     <p class="truncate text-sm font-bold">{{ Auth::user()->name }}</p>
                     <p class="mt-1 truncate text-xs text-blue-100">{{ Auth::user()->email }}</p>
                     <form method="POST" action="{{ route('logout') }}" class="mt-4">
@@ -57,6 +58,7 @@
                             Sign out
                         </button>
                     </form>
+                    </div>
                 </div>
             </aside>
 

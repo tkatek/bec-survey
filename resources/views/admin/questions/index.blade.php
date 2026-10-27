@@ -36,7 +36,7 @@
             </header>
 
             <div class="mt-6 flex flex-col gap-3 2xl:flex-row 2xl:items-stretch 2xl:justify-between">
-                <div class="min-w-0 overflow-x-auto rounded-2xl border border-[#e0e8f4] bg-white p-1 shadow-[0_8px_24px_rgba(22,65,122,0.05)]">
+                <div class="survey-tabs-scroll min-w-0 overflow-x-auto rounded-2xl border border-[#e0e8f4] bg-white p-1 shadow-[0_8px_24px_rgba(22,65,122,0.05)]">
                     <div class="flex min-w-max items-stretch">
                         <button type="button" @click="selectedSection = 'all'" :class="selectedSection === 'all' ? 'bg-[#1357e8] text-white shadow-md' : 'text-[#10214b] hover:bg-[#f6f9ff]'" class="rounded-xl px-5 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
                             <span class="block text-xs font-extrabold">All Questions (<span x-text="state.totalQuestions"></span>)</span>
@@ -253,7 +253,7 @@
         <button x-show="!editorOpen" x-cloak type="button" @click="editorOpen = true" class="fixed bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-full bg-[#1357e8] px-5 py-3 text-sm font-extrabold text-white shadow-xl xl:hidden"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Open Editor</button>
 
         <div x-show="preview" x-cloak class="fixed inset-0 z-[80] grid place-items-center bg-[#071326]/55 p-3 backdrop-blur-sm sm:p-6" @click.self="closePreview">
-            <section x-show="preview" x-transition @keydown="trapFocus" role="dialog" aria-modal="true" aria-labelledby="preview-question-title" :class="previewDevice === 'mobile' ? 'max-w-[390px]' : 'max-w-2xl'" class="admin-question-preview max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto rounded-2xl bg-white shadow-[0_30px_80px_rgba(7,19,38,0.28)] sm:max-h-[calc(100dvh-3rem)]">
+            <section x-show="preview" x-transition @keydown="trapFocus" role="dialog" aria-modal="true" aria-labelledby="preview-question-title" :class="previewDevice === 'mobile' ? 'admin-question-preview--mobile max-w-[390px]' : 'max-w-2xl'" class="admin-question-preview max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto rounded-2xl bg-white shadow-[0_30px_80px_rgba(7,19,38,0.28)] sm:max-h-[calc(100dvh-3rem)]">
                 <header class="flex items-start justify-between gap-4 border-b border-[#e4ebf5] px-5 py-4">
                     <div class="min-w-0">
                         <h2 id="preview-question-title" class="flex items-center gap-2 text-lg font-extrabold text-[#071326]"><span class="grid h-8 w-8 place-items-center rounded-lg bg-[#edf4ff] text-[#1357e8]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></span>Preview Question</h2>
@@ -262,8 +262,8 @@
                     <button x-ref="previewClose" type="button" @click="closePreview" aria-label="Close preview" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#53668d] hover:bg-[#edf4ff]"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
                 </header>
                 <div class="flex justify-end gap-1 px-5 pt-3">
-                    <button type="button" @click="previewDevice = 'desktop'" :class="previewDevice === 'desktop' ? 'bg-[#1357e8] text-white' : 'bg-[#f1f5fb] text-[#53668d]'" class="rounded-lg px-3 py-1.5 text-[10px] font-extrabold">Desktop</button>
-                    <button type="button" @click="previewDevice = 'mobile'" :class="previewDevice === 'mobile' ? 'bg-[#1357e8] text-white' : 'bg-[#f1f5fb] text-[#53668d]'" class="rounded-lg px-3 py-1.5 text-[10px] font-extrabold">Mobile</button>
+                    <button type="button" @click="previewDevice = 'desktop'" :aria-pressed="(previewDevice === 'desktop').toString()" :class="previewDevice === 'desktop' ? 'bg-[#1357e8] text-white' : 'bg-[#f1f5fb] text-[#53668d]'" class="rounded-lg px-3 py-1.5 text-[10px] font-extrabold">Desktop</button>
+                    <button type="button" @click="previewDevice = 'mobile'" :aria-pressed="(previewDevice === 'mobile').toString()" :class="previewDevice === 'mobile' ? 'bg-[#1357e8] text-white' : 'bg-[#f1f5fb] text-[#53668d]'" class="rounded-lg px-3 py-1.5 text-[10px] font-extrabold">Mobile</button>
                 </div>
                 <div class="survey-progress px-5">
                     <div class="survey-progress-copy"><span>Question <strong x-text="preview?.number"></strong> of <span x-text="Math.max(state.totalQuestions, preview?.number || 1)"></span></span><span><strong x-text="previewProgress()"></strong>% complete</span></div>
@@ -310,7 +310,8 @@
         </div>
 
         <div x-show="sectionModal" x-cloak class="fixed inset-0 z-[75] grid place-items-center bg-[#071326]/50 p-4 backdrop-blur-sm" @click.self="closeSectionModal">
-            <form x-show="sectionModal" @submit.prevent="saveSection" @keydown="trapFocus" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-[0_28px_75px_rgba(7,19,38,0.25)]" role="dialog" aria-modal="true" aria-labelledby="section-modal-title">
+            <template x-if="sectionModal">
+            <form @submit.prevent="saveSection" @keydown="trapFocus" class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-[0_28px_75px_rgba(7,19,38,0.25)]" role="dialog" aria-modal="true" aria-labelledby="section-modal-title">
                 <div class="flex items-center justify-between gap-3"><h2 id="section-modal-title" class="text-lg font-extrabold text-[#071326]" x-text="sectionModal?.mode === 'edit' ? 'Edit Section' : 'Add Section'"></h2><button type="button" @click="closeSectionModal" aria-label="Close section editor" class="grid h-9 w-9 place-items-center rounded-lg text-[#53668d] hover:bg-[#edf4ff]"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
                 <div class="mt-5 grid gap-4">
                     <label class="grid gap-2 text-xs font-extrabold text-[#10214b]">Section title<input x-ref="sectionTitle" x-model="sectionModal.title" maxlength="120" class="rounded-xl border-[#cdd9ea] px-3.5 py-2.5 text-sm font-semibold focus:border-[#1357e8] focus:ring-[#1357e8]"><span x-show="sectionModal?.errors?.title" x-text="sectionModal?.errors?.title?.[0]" class="text-[11px] text-rose-600"></span></label>
@@ -319,6 +320,7 @@
                 </div>
                 <div class="mt-6 flex justify-end gap-2"><button type="button" @click="closeSectionModal" class="rounded-xl border border-[#cdd9ea] px-4 py-2.5 text-xs font-extrabold text-[#33476b]">Cancel</button><button type="submit" :disabled="sectionModal?.saving" class="rounded-xl bg-[#1357e8] px-5 py-2.5 text-xs font-extrabold text-white disabled:opacity-60" x-text="sectionModal?.saving ? 'Saving…' : 'Save Section'"></button></div>
             </form>
+            </template>
         </div>
 
         <div x-show="confirmation" x-cloak class="fixed inset-0 z-[90] grid place-items-center bg-[#071326]/55 p-4 backdrop-blur-sm" @click.self="confirmation = null">

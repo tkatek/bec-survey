@@ -1,8 +1,15 @@
 <?php
 
-use App\Http\Controllers\Admin\SurveyQuestionController;
+use App\Http\Controllers\Admin\AnalyticsDataController;
+use App\Http\Controllers\Admin\AnalyticsReportController;
+use App\Http\Controllers\Admin\CommonAnswersController;
+use App\Http\Controllers\Admin\FeedbackReviewController;
 use App\Http\Controllers\Admin\PublishedSurveyController;
+use App\Http\Controllers\Admin\SurveyAlertReadAllController;
+use App\Http\Controllers\Admin\SurveyAlertReadController;
+use App\Http\Controllers\Admin\SurveyAlertResolutionController;
 use App\Http\Controllers\Admin\SurveyPreviewController;
+use App\Http\Controllers\Admin\SurveyQuestionController;
 use App\Http\Controllers\Admin\SurveyQuestionDuplicateController;
 use App\Http\Controllers\Admin\SurveyQuestionMoveController;
 use App\Http\Controllers\Admin\SurveyQuestionOrderController;
@@ -27,9 +34,22 @@ Route::get('/conversation-room/thank-you', [ConversationRoomSurveyController::cl
     ->name('conversation-room.thank-you');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->middleware('admin')->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
+        Route::get('analytics', AnalyticsDataController::class)->name('analytics.show');
+        Route::get('common-answers', CommonAnswersController::class)->name('common-answers');
+        Route::post('reports/pdf', AnalyticsReportController::class)
+            ->middleware('throttle:analytics-pdf')
+            ->name('reports.pdf');
+        Route::put('feedback/{answer}/review', FeedbackReviewController::class)
+            ->name('feedback.review');
+        Route::put('alerts/read-all', SurveyAlertReadAllController::class)
+            ->name('alerts.read-all');
+        Route::put('alerts/{alert}/read', SurveyAlertReadController::class)
+            ->name('alerts.read');
+        Route::put('alerts/{alert}/resolve', SurveyAlertResolutionController::class)
+            ->name('alerts.resolve');
         Route::resource('questions', SurveyQuestionController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['questions' => 'question']);

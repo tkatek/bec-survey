@@ -53,6 +53,19 @@ class SurveyDraftManager
             ->flatMap(fn (SurveySection $section) => $section->questions)
             ->values();
         $sections = $surveySections->pluck('title')->values();
+        $sectionStart = 0;
+        $stepperSections = $surveySections->map(function (SurveySection $section) use (&$sectionStart): array {
+            $questionCount = $section->questions->count();
+            $stepperSection = [
+                'key' => $section->stable_id,
+                'name' => $section->title,
+                'start' => $sectionStart,
+                'end' => $sectionStart + $questionCount - 1,
+            ];
+            $sectionStart += $questionCount;
+
+            return $stepperSection;
+        });
         $surveyConfiguration = [
             'totalSteps' => $questions->count(),
             'isPreview' => $isPreview,
@@ -63,18 +76,7 @@ class SurveyDraftManager
                 'maxSelections' => $question->max_selections,
                 'groups' => $question->options->pluck('group_name')->filter()->unique()->values()->all(),
             ])->all(),
-            'sections' => $sections->map(function (string $section) use ($questions): array {
-                $indexes = $questions
-                    ->map(fn (SurveyQuestion $question, int $index): ?int => $question->section === $section ? $index : null)
-                    ->filter(fn (?int $index): bool => $index !== null)
-                    ->values();
-
-                return [
-                    'name' => $section,
-                    'start' => $indexes->first(),
-                    'end' => $indexes->last(),
-                ];
-            })->all(),
+            'sections' => $stepperSections->all(),
         ];
 
         return compact('questions', 'sections', 'surveyConfiguration') + [

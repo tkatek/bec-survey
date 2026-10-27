@@ -1,271 +1,126 @@
 <x-app-layout>
-    @php
-        $toneColors = [
-            'blue' => '#4386f4',
-            'green' => '#20c997',
-            'orange' => '#ff9f2f',
-            'purple' => '#9264e8',
-            'red' => '#f45b73',
-            'neutral' => '#91a1bb',
-        ];
-        $attendanceSegments = [];
-        $segmentStart = 0;
-        foreach ($charts['attendance'] as $item) {
-            $segmentEnd = min(100, $segmentStart + $item['percentage']);
-            $attendanceSegments[] = ($toneColors[$item['tone']] ?? $toneColors['blue'])." {$segmentStart}% {$segmentEnd}%";
-            $segmentStart = $segmentEnd;
-        }
-        if ($segmentStart < 100) {
-            $attendanceSegments[] = "#e7edf7 {$segmentStart}% 100%";
-        }
-        $donutStyle = $periodResponses === 0
-            ? 'background: conic-gradient(#e7edf7 0 100%)'
-            : 'background: conic-gradient('.implode(', ', $attendanceSegments).')';
-        $maxPreferredTimePercentage = max(1, (int) collect($charts['preferredTime'])->max('percentage'));
-    @endphp
-
-    <div x-data="dashboardAnalytics" class="relative min-h-screen min-w-0 overflow-x-hidden bg-[radial-gradient(circle_at_8%_0%,_#d5e8ff_0,_#edf4ff_32%,_#e9effb_70%,_#f5f8ff_100%)]">
-        <div class="pointer-events-none absolute -left-32 top-24 h-96 w-96 rounded-full bg-[#1357e8]/10 blur-3xl" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute right-0 top-0 h-[30rem] w-[30rem] rounded-full bg-[#7faeff]/15 blur-3xl" aria-hidden="true"></div>
-        <div class="relative mx-auto w-full max-w-[1680px] p-4 sm:p-6 lg:p-8 2xl:p-10">
-            <header class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <div
+        x-data="dashboardAnalytics({{
+            Js::from([
+                'analytics' => $analytics,
+                'snapshotToken' => $snapshotToken,
+                'dataUrl' => route('admin.analytics.show'),
+                'dashboardUrl' => route('dashboard'),
+                'commonAnswersUrl' => route('admin.common-answers'),
+            ])
+        }})"
+        class="relative min-h-screen overflow-x-hidden bg-[#f5f8ff]"
+    >
+        <div class="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+            <header class="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-end">
                 <div class="min-w-0">
-                    <p class="text-sm font-bold text-[#1357e8]">Survey analytics</p>
-                    <h1 class="mt-1 max-w-4xl text-2xl font-extrabold tracking-[-0.04em] text-[#071326] sm:text-3xl lg:text-[2.45rem] lg:leading-tight">Conversation Room Feedback Survey</h1>
-                    <p class="mt-2 max-w-3xl text-sm font-medium leading-6 text-[#586b91] sm:text-base">See where students are thriving, where they struggle, and what would bring them back more often.</p>
+                    <p class="text-xs font-extrabold uppercase tracking-[0.12em] text-[#1457ff]">Survey analytics</p>
+                    <h1 class="mt-1 text-2xl font-extrabold tracking-[-0.035em] text-[#0b1739] sm:text-[2rem]">Conversation Room Feedback Survey</h1>
+                    <p class="mt-2 max-w-3xl text-sm leading-6 text-[#64748b]">Understand students' experience, identify recurring barriers, and improve the Conversation Room with evidence.</p>
                 </div>
 
-                <form method="GET" action="{{ route('dashboard') }}" class="w-full shrink-0 sm:w-auto">
-                    <label for="period" class="sr-only">Analytics period</label>
-                    <select id="period" name="period" onchange="this.form.submit()" class="w-full rounded-2xl border border-white/80 bg-white/85 px-5 py-3.5 text-sm font-bold text-[#10214b] shadow-[0_12px_30px_rgba(34,74,135,0.10)] backdrop-blur focus:border-[#1357e8] focus:ring-[#1357e8] sm:min-w-56">
-                        <option value="7" @selected($period === 7)>Last 7 days</option>
-                        <option value="30" @selected($period === 30)>Last 30 days</option>
-                        <option value="90" @selected($period === 90)>Last 90 days</option>
-                    </select>
-                </form>
+                <div class="flex min-w-0 flex-col gap-3 xl:items-end">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="inline-flex rounded-xl border border-[#dce5f2] bg-white p-1 shadow-sm" aria-label="Reporting period">
+                            <template x-for="preset in presets" :key="preset.value">
+                                <button type="button" @click="applyPreset(preset.value)" :disabled="loading" :class="filter.preset === preset.value ? 'bg-[#1457ff] text-white shadow-sm' : 'text-[#52658b] hover:bg-[#f1f5ff]'" class="rounded-lg px-3 py-2 text-xs font-extrabold transition disabled:cursor-wait disabled:opacity-60 sm:px-4" x-text="preset.label"></button>
+                            </template>
+                        </div>
+
+                        <div class="relative" @keydown.escape.stop="closeCalendar()">
+                            <button x-ref="calendarTrigger" type="button" @click="calendarOpen = !calendarOpen" :aria-expanded="calendarOpen" aria-haspopup="dialog" aria-label="Choose date or date range" title="Choose date or date range" class="inline-flex h-11 items-center gap-2 rounded-xl border border-[#dce5f2] bg-white px-3 text-xs font-extrabold text-[#334a75] shadow-sm transition hover:border-[#b8c9e7] hover:text-[#1457ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1457ff]">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>
+                                <span class="hidden sm:inline" x-text="filter.preset === 'custom' ? 'Custom' : 'Choose dates'"></span>
+                            </button>
+
+                            <div x-cloak x-show="calendarOpen" x-transition.origin.top.right @click.outside="closeCalendar()" role="dialog" aria-modal="true" aria-label="Choose reporting dates" class="fixed inset-x-3 top-20 z-50 rounded-2xl border border-[#dce5f2] bg-white p-4 shadow-[0_24px_70px_rgba(11,23,57,0.22)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-14 sm:w-[23rem]">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div><h2 class="text-sm font-extrabold text-[#0b1739]">Choose reporting dates</h2><p class="mt-1 text-xs text-[#64748b]">Dates use <span x-text="analytics.meta.timezone"></span>.</p></div>
+                                    <button type="button" @click="closeCalendar()" class="rounded-lg p-2 text-[#64748b] hover:bg-[#f1f5ff]" aria-label="Close date picker"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+                                </div>
+                                <div class="mt-4 inline-flex rounded-lg bg-[#edf3ff] p-1">
+                                    <button type="button" @click="calendarMode = 'date'; draftEnd = draftStart" :class="calendarMode === 'date' ? 'bg-white text-[#1457ff] shadow-sm' : 'text-[#52658b]'" class="rounded-md px-3 py-1.5 text-xs font-bold">Specific date</button>
+                                    <button type="button" @click="calendarMode = 'range'" :class="calendarMode === 'range' ? 'bg-white text-[#1457ff] shadow-sm' : 'text-[#52658b]'" class="rounded-md px-3 py-1.5 text-xs font-bold">Date range</button>
+                                </div>
+                                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <label class="grid gap-1.5 text-xs font-bold text-[#334155]">Start date<input x-model="draftStart" @change="if (calendarMode === 'date') draftEnd = draftStart" type="date" :max="today" class="w-full rounded-xl border-[#cbd5e1] text-sm focus:border-[#1457ff] focus:ring-[#1457ff]"></label>
+                                    <label x-show="calendarMode === 'range'" class="grid gap-1.5 text-xs font-bold text-[#334155]">End date<input x-model="draftEnd" type="date" :min="draftStart" :max="today" class="w-full rounded-xl border-[#cbd5e1] text-sm focus:border-[#1457ff] focus:ring-[#1457ff]"></label>
+                                </div>
+                                <p x-show="calendarError" x-text="calendarError" class="mt-3 text-xs font-bold text-rose-600" role="alert"></p>
+                                <div class="mt-4 flex items-center justify-between gap-3">
+                                    <button type="button" @click="setTodayDraft()" class="text-xs font-bold text-[#1457ff] hover:underline">Today</button>
+                                    <div class="flex gap-2"><button type="button" @click="closeCalendar()" class="rounded-lg border border-[#dce5f2] px-3 py-2 text-xs font-bold text-[#52658b]">Cancel</button><button type="button" @click="applyCustomDates()" class="rounded-lg bg-[#1457ff] px-4 py-2 text-xs font-bold text-white hover:bg-[#0f46cf]">Apply</button></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if ($versions->count() > 1)
+                            <label class="sr-only" for="survey-version">Survey version</label>
+                            <select id="survey-version" x-model.number="filter.version" @change="refresh()" class="h-11 rounded-xl border-[#dce5f2] bg-white py-0 pl-3 pr-8 text-xs font-extrabold text-[#334a75] shadow-sm focus:border-[#1457ff] focus:ring-[#1457ff]">
+                                @foreach ($versions as $version)
+                                    <option value="{{ $version->number }}">Version {{ $version->number }} · {{ ucfirst($version->status) }}</option>
+                                @endforeach
+                            </select>
+                        @endif
+
+                        <form method="POST" action="{{ route('admin.reports.pdf') }}" @submit="exporting = true; window.setTimeout(() => exporting = false, 2500)">
+                            @csrf
+                            <input type="hidden" name="preset" :value="filter.preset"><input type="hidden" name="start" :value="filter.start"><input type="hidden" name="end" :value="filter.end"><input type="hidden" name="version" :value="filter.version"><input type="hidden" name="snapshot" :value="snapshotToken">
+                            <button type="submit" :disabled="exporting || loading" class="inline-flex h-11 items-center gap-2 rounded-xl bg-[#1457ff] px-4 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#0f46cf] disabled:cursor-wait disabled:opacity-60">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2" /></svg><span x-text="exporting ? 'Preparing report...' : 'Download PDF'"></span>
+                            </button>
+                        </form>
+                        <x-admin.notification-bell :alert-data="$alertData" />
+                    </div>
+                    <p class="text-xs font-semibold text-[#64748b]"><span x-text="analytics.meta.filter.label"></span><span aria-hidden="true"> · </span><span x-text="analytics.meta.timezone"></span><span aria-hidden="true"> · </span><span>Version <span x-text="analytics.meta.version"></span></span></p>
+                </div>
             </header>
 
-            <section class="mt-7 grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Survey overview">
-                <article data-dashboard-stat class="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#e9f2ff] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.10)]">
-                    <div class="flex items-start justify-between gap-4">
-                        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e4efff] text-[#1357e8]"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></span>
-                        <div class="flex flex-wrap justify-end gap-2">
-                            @if ($demoResponses > 0)
-                                <span class="rounded-full bg-[#071326] px-2.5 py-1 text-[10px] font-bold text-white">{{ $demoResponses }} demo</span>
-                            @endif
-                            <span @class(['rounded-full px-2.5 py-1 text-xs font-bold', 'bg-emerald-50 text-emerald-600' => $responseTrend >= 0, 'bg-rose-50 text-rose-600' => $responseTrend < 0])>{{ $responseTrend >= 0 ? '+' : '' }}{{ $responseTrend }}%</span>
-                        </div>
-                    </div>
-                    <p class="mt-5 text-sm font-semibold text-[#607296]">Responses in this period</p>
-                    <p class="mt-1 text-3xl font-extrabold tracking-tight text-[#071326]"><span data-count-up="{{ $periodResponses }}" aria-label="{{ $periodResponses }} responses">0</span></p>
-                </article>
+            <div x-cloak x-show="errorMessage" class="mt-5 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 sm:flex-row sm:items-center sm:justify-between" role="alert"><span x-text="errorMessage"></span><button type="button" @click="refresh()" class="w-fit rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">Retry</button></div>
 
-                <article data-dashboard-stat class="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#e8fbf5] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.10)]">
-                    <span class="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg></span>
-                    <p class="mt-5 text-sm font-semibold text-[#607296]">Live questions</p>
-                    <p class="mt-1 text-3xl font-extrabold tracking-tight text-[#071326]"><span data-count-up="{{ $activeQuestions }}" aria-label="{{ $activeQuestions }} live questions">0</span></p>
-                </article>
-
-                <article data-dashboard-stat class="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#f4ebff] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.10)]">
-                    <span class="grid h-12 w-12 place-items-center rounded-2xl bg-purple-50 text-purple-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" /></svg></span>
-                    <p class="mt-5 text-sm font-semibold text-[#607296]">Positive activity rating</p>
-                    <p class="mt-1 text-3xl font-extrabold tracking-tight text-[#071326]"><span data-count-up="{{ $positiveUsefulnessPercentage }}" data-suffix="%" aria-label="{{ $positiveUsefulnessPercentage }} percent positive">0%</span></p>
-                </article>
-
-                <article data-dashboard-stat class="min-w-0 overflow-hidden rounded-[1.6rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#fff3dd] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.10)]">
-                    <span class="grid h-12 w-12 place-items-center rounded-2xl bg-amber-50 text-amber-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 14 4-4 4 4 8-8" /><path d="M14 6h6v6" /></svg></span>
-                    <p class="mt-5 text-sm font-semibold text-[#607296]">Likely to attend again</p>
-                    <p class="mt-1 text-3xl font-extrabold tracking-tight text-[#071326]"><span data-count-up="{{ $likelyToAttendPercentage }}" data-suffix="%" aria-label="{{ $likelyToAttendPercentage }} percent likely to attend">0%</span></p>
-                </article>
+            <section class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Survey overview">
+                <article class="admin-card min-h-[8.5rem] p-5"><div class="flex items-start gap-4"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e8f0ff] text-[#1457ff]"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></svg></span><div class="min-w-0"><p class="text-sm font-semibold text-[#52658b]">Responses in period</p><p class="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-[#0b1739]" x-text="formatNumber(animated.responses)"></p><p class="mt-1 text-xs leading-5 text-[#71809d]">Completed, non-demo submissions</p></div></div></article>
+                <article class="admin-card min-h-[8.5rem] p-5"><div class="flex items-start gap-4"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12.5 10.5 15 16 9.5" /><circle cx="12" cy="12" r="9" /></svg></span><div class="min-w-0"><p class="text-sm font-semibold text-[#52658b]">Positive activity feedback</p><p class="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-[#0b1739]" x-text="formatPercent(animated.positive)"></p><p class="mt-1 text-xs leading-5 text-[#71809d]"><span x-text="analytics.overview.positiveActivity.count"></span> of <span x-text="analytics.overview.positiveActivity.denominator"></span> valid Q6 answers</p></div></div></article>
+                <article class="admin-card min-h-[8.5rem] p-5"><div class="flex items-start gap-4"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-50 text-violet-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 18h8M10 22h4" /><path d="M9 13a5 5 0 1 1 6 0c-1 .7-1.5 1.7-1.5 3h-3c0-1.3-.5-2.3-1.5-3Z" /></svg></span><div class="min-w-0"><p class="text-sm font-semibold text-[#52658b]">Main attendance barrier</p><p class="mt-1 line-clamp-2 text-lg font-extrabold leading-6 text-[#0b1739]" x-text="analytics.overview.mainBarrier.label"></p><p class="mt-1 text-xs leading-5 text-[#71809d]"><span x-text="analytics.overview.mainBarrier.count"></span> responses · <span x-text="formatPercent(analytics.overview.mainBarrier.percentage)"></span></p></div></div></article>
+                <article class="admin-card min-h-[8.5rem] p-5"><div class="flex items-start gap-4"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-500"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></span><div class="min-w-0"><p class="text-sm font-semibold text-[#52658b]">Most preferred time</p><p class="mt-1 line-clamp-2 text-lg font-extrabold leading-6 text-[#0b1739]" x-text="analytics.overview.preferredTime.label"></p><p class="mt-1 text-xs leading-5 text-[#71809d]"><span x-text="analytics.overview.preferredTime.count"></span> responses · <span x-text="formatPercent(analytics.overview.preferredTime.percentage)"></span></p></div></div></article>
             </section>
 
-            @if ($periodResponses === 0)
-                <div class="mt-6 flex flex-col gap-4 rounded-[1.6rem] border border-dashed border-[#9eb5d7] bg-white/70 p-6 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="text-lg font-extrabold">Your analytics are ready</h2>
-                        <p class="mt-1 text-sm leading-6 text-[#607296]">Charts will populate as soon as students complete the live survey.</p>
-                    </div>
-                    <a href="{{ route('conversation-room.create') }}" target="_blank" class="inline-flex items-center justify-center rounded-2xl bg-[#1357e8] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#0b43be]">Open survey</a>
-                </div>
-            @else
-                <section class="mt-5 grid min-w-0 gap-4 lg:grid-cols-2" aria-label="Key survey signals">
-                    <article class="min-w-0 rounded-[1.4rem] border border-emerald-100 bg-emerald-50/80 p-4 sm:flex sm:items-center sm:gap-4">
-                        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 12 4 4L19 6" /></svg></span>
-                        <div class="mt-3 min-w-0 sm:mt-0">
-                            <p class="text-xs font-bold text-emerald-700">Strongest preference</p>
-                            <p class="mt-1 truncate text-sm font-extrabold text-[#071326]">{{ $strongestFormat['label'] ?? 'More responses needed' }} <span class="text-emerald-600">{{ $strongestFormat['percentage'] ?? 0 }}%</span></p>
-                        </div>
+            <div x-show="loading" class="mt-5 grid gap-4 lg:grid-cols-12" aria-live="polite" aria-label="Updating analytics"><div class="h-72 animate-pulse rounded-[1.25rem] bg-white/70 lg:col-span-7"></div><div class="h-72 animate-pulse rounded-[1.25rem] bg-white/70 lg:col-span-5"></div></div>
+
+            <div :class="loading ? 'pointer-events-none opacity-30' : 'opacity-100'" class="mt-5 grid min-w-0 gap-5 transition-opacity">
+                <section class="grid min-w-0 gap-5 xl:grid-cols-12">
+                    <article class="admin-card min-w-0 p-5 sm:p-6 xl:col-span-7">
+                        <div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="admin-card-title">Responses Over Time</h2><p class="admin-card-subtitle"><span x-text="analytics.series.label"></span> · <span x-text="analytics.series.timezone"></span></p></div><span class="rounded-full bg-[#edf3ff] px-3 py-1.5 text-xs font-bold text-[#1457ff]" x-text="analytics.series.total + ' total'"></span></div>
+                        <div class="relative mt-4 h-[18rem] min-w-0"><canvas x-ref="responsesChart" aria-label="Responses over time chart"></canvas></div>
+                        <details class="mt-3 text-xs text-[#52658b]"><summary class="cursor-pointer font-bold text-[#1457ff]">Accessible data table</summary><div class="mt-2 max-h-44 overflow-auto rounded-lg border border-[#e5ebf5]"><table class="w-full text-left"><thead class="sticky top-0 bg-[#f5f8ff]"><tr><th class="px-3 py-2">Period</th><th class="px-3 py-2 text-right">Responses</th></tr></thead><tbody><template x-for="point in analytics.series.points" :key="point.key"><tr class="border-t border-[#edf1f7]"><td class="px-3 py-2" x-text="point.fullLabel"></td><td class="px-3 py-2 text-right font-bold" x-text="point.value"></td></tr></template></tbody></table></div></details>
                     </article>
-                    <article class="min-w-0 rounded-[1.4rem] border border-amber-100 bg-amber-50/80 p-4 sm:flex sm:items-center sm:gap-4">
-                        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 9v4m0 4h.01" /><path d="M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z" /></svg></span>
-                        <div class="mt-3 min-w-0 sm:mt-0">
-                            <p class="text-xs font-bold text-amber-700">Main attendance barrier</p>
-                            <p class="mt-1 truncate text-sm font-extrabold text-[#071326]">{{ $topBarrier['label'] ?? 'More responses needed' }} <span class="text-amber-600">{{ $topBarrier['percentage'] ?? 0 }}%</span></p>
-                        </div>
+
+                    <article class="admin-card min-w-0 p-5 sm:p-6 xl:col-span-5">
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Attendance Frequency</h2><p class="admin-card-subtitle">How often respondents attended the Conversation Room</p></div><a :href="detailUrl('attendance_frequency')" class="admin-detail-link">View details</a></div>
+                        <div class="mt-4 grid items-center gap-4 md:grid-cols-[minmax(12rem,0.9fr)_minmax(0,1.1fr)]"><div class="relative mx-auto h-[15rem] w-full max-w-[16rem]"><canvas x-ref="attendanceChart" aria-label="Attendance frequency doughnut chart"></canvas></div><div class="grid gap-2"><template x-for="(item, index) in distribution(analytics.dashboard.attendance).options" :key="item.id"><div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs"><span class="h-2.5 w-2.5 rounded-full" :style="'background:' + colors[index % colors.length]"></span><span class="truncate text-[#52658b]" :title="item.label" x-text="item.label"></span><span class="font-extrabold text-[#0b1739]"><span x-text="item.count"></span> · <span x-text="formatPercent(item.percentage)"></span></span></div></template></div></div>
                     </article>
                 </section>
-            @endif
 
-            <section class="mt-5 grid min-w-0 gap-5 xl:grid-cols-12">
-                <article class="relative min-w-0 overflow-hidden rounded-[1.8rem] bg-[#071326] p-5 text-white shadow-[0_24px_60px_rgba(7,19,38,0.22)] sm:p-6 xl:col-span-8">
-                    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,_rgba(255,139,31,0.16),_transparent_38%)]" aria-hidden="true"></div>
-                    <div class="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                            <h2 class="text-lg font-extrabold sm:text-xl">Response momentum</h2>
-                            <p class="mt-1 text-sm text-blue-100/70">Daily completed surveys across the latest two weeks</p>
-                        </div>
-                        <span class="w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-bold text-blue-50">{{ $period }} day view</span>
-                    </div>
+                <section class="grid min-w-0 gap-5 lg:grid-cols-2">
+                    <article class="admin-card min-w-0 p-5 sm:p-6"><div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Top Attendance Barriers</h2><p class="admin-card-subtitle">Q3 · Multiple selections allowed; percentages may exceed 100%</p></div><a :href="detailUrl('attendance_reasons')" class="admin-detail-link">View all reasons</a></div><div class="relative mt-4 h-[19rem] min-w-0"><canvas x-ref="barriersChart" aria-label="Top attendance barriers horizontal bar chart"></canvas></div></article>
 
-                    <div class="relative mt-5 min-w-0 overflow-hidden rounded-2xl border border-white/5 bg-[#09182d]/80 p-2 sm:p-4">
-                        <svg class="block h-auto w-full max-w-full" viewBox="0 0 760 245" role="img" aria-label="Area chart showing completed survey responses by day">
-                            <defs>
-                                <linearGradient id="momentum-area" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#ff8a1f" stop-opacity="0.78" />
-                                    <stop offset="58%" stop-color="#f56c1b" stop-opacity="0.28" />
-                                    <stop offset="100%" stop-color="#ff8a1f" stop-opacity="0" />
-                                </linearGradient>
-                                <linearGradient id="momentum-line" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stop-color="#ffc46b" />
-                                    <stop offset="50%" stop-color="#ff8a1f" />
-                                    <stop offset="100%" stop-color="#ffb451" />
-                                </linearGradient>
-                                <filter id="momentum-glow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feGaussianBlur stdDeviation="4" result="blur" />
-                                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                                </filter>
-                                <clipPath id="momentum-reveal"><rect data-dashboard-chart-reveal x="0" y="0" width="760" height="245" /></clipPath>
-                            </defs>
+                    <article class="admin-card min-w-0 p-5 sm:p-6">
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Preferred Session Format</h2><p class="admin-card-subtitle">Which format respondents prefer</p></div><a :href="detailUrl('session_format')" class="admin-detail-link">View details</a></div>
+                        <div class="mt-5 grid gap-3"><template x-for="(item, index) in rankedOptions(analytics.dashboard.format)" :key="item.id"><button type="button" @click="showRowTooltip(item, distribution(analytics.dashboard.format).answered)" class="grid w-full grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-[#e5ebf5] px-3 py-2.5 text-left transition hover:border-[#b8c9e7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1457ff]"><span class="grid h-9 w-9 place-items-center rounded-xl text-xs font-extrabold" :style="'background:' + softColors[index % softColors.length] + ';color:' + colors[index % colors.length]" x-text="index + 1"></span><span class="rounded-full bg-[#f5f8ff] px-2 py-1 text-xs font-extrabold text-[#1457ff]" x-text="formatPercent(item.percentage)"></span><span class="min-w-0 text-sm font-bold text-[#334155]" x-text="item.label"></span><span class="text-xs font-extrabold text-[#0b1739]" x-text="item.count"></span></button></template></div>
+                    </article>
+                </section>
 
-                            @foreach ([55, 105, 155, 205] as $gridLine)
-                                <line x1="24" y1="{{ $gridLine }}" x2="736" y2="{{ $gridLine }}" stroke="rgba(157,183,220,0.12)" stroke-width="1" />
-                            @endforeach
+                <section class="grid min-w-0 gap-5 xl:grid-cols-3">
+                    <article class="admin-card min-w-0 p-5 sm:p-6"><div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Preferred Time to Attend</h2><p class="admin-card-subtitle">Preferred local periods, not converted schedules</p></div><a :href="detailUrl('preferred_session_time')" class="admin-detail-link">View details</a></div><div class="relative mt-4 h-[17rem] min-w-0"><canvas x-ref="preferredTimeChart" aria-label="Preferred time vertical bar chart"></canvas></div></article>
+                    <article class="admin-card min-w-0 p-5 sm:p-6"><div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Likelihood to Attend Again</h2><p class="admin-card-subtitle">Stated intention, not measured future attendance</p></div><a :href="detailUrl('attendance_likelihood')" class="admin-detail-link">View details</a></div><div class="relative mt-4 h-[17rem] min-w-0"><canvas x-ref="likelihoodChart" aria-label="Likelihood to attend again bar chart"></canvas></div></article>
+                    <article class="admin-card min-w-0 p-5 sm:p-6">
+                        <div class="flex items-start justify-between gap-3"><div><h2 class="admin-card-title">Recent Written Feedback</h2><p class="admin-card-subtitle">Latest non-empty comments in this period</p></div><a :href="feedbackUrl()" class="admin-detail-link">View all</a></div>
+                        <div class="mt-4 grid gap-2.5"><template x-for="feedback in analytics.feedback" :key="feedback.id"><a :href="feedbackUrl()" class="group rounded-xl border border-[#e5ebf5] bg-[#fbfcff] px-3.5 py-3 transition hover:border-[#b8c9e7]"><p class="line-clamp-2 text-sm font-semibold leading-5 text-[#334155]" x-text="feedback.text"></p><p class="mt-2 text-xs font-bold text-[#71809d]" x-text="feedback.date"></p></a></template><div x-show="analytics.feedback.length === 0" class="rounded-xl border border-dashed border-[#cbd5e1] px-4 py-8 text-center"><p class="text-sm font-bold text-[#334155]">No written feedback</p><p class="mt-1 text-xs text-[#64748b]">No comments were submitted in this period.</p></div></div>
+                    </article>
+                </section>
+            </div>
 
-                            <g clip-path="url(#momentum-reveal)">
-                                <path d="{{ $momentumChart['area'] }}" fill="url(#momentum-area)" />
-                                <path d="{{ $momentumChart['line'] }}" fill="none" stroke="url(#momentum-line)" stroke-width="3" stroke-linecap="round" filter="url(#momentum-glow)" />
-                                @foreach ($momentumChart['points'] as $point)
-                                    <g>
-                                        <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="4" fill="#ff9a37" stroke="#071326" stroke-width="2"><title>{{ $point['label'] }}: {{ $point['value'] }} responses</title></circle>
-                                        @if ($point['value'] > 0)
-                                            <text x="{{ $point['x'] }}" y="{{ max(18, $point['y'] - 12) }}" text-anchor="middle" fill="#ffd19a" font-size="10" font-weight="700">{{ $point['value'] }}</text>
-                                        @endif
-                                    </g>
-                                @endforeach
-                            </g>
-
-                            @foreach ($momentumChart['points'] as $index => $point)
-                                @if ($index % 2 === 0 || $loop->last)
-                                    <text x="{{ $point['x'] }}" y="232" text-anchor="middle" fill="#7890b5" font-size="9" font-weight="600">{{ $point['label'] }}</text>
-                                @endif
-                            @endforeach
-                        </svg>
-                    </div>
-
-                    <div class="relative mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-100/70">
-                        <span>Peak day: <strong class="text-white">{{ $responseSeries->sortByDesc('value')->first()['label'] }}</strong></span>
-                        <span class="inline-flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-[#ff8a1f]"></span>Completed responses</span>
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#eaf3ff] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.10)] sm:p-6 xl:col-span-4">
-                    <h2 class="text-lg font-extrabold text-[#071326]">Attendance frequency</h2>
-                    <p class="mt-1 text-sm text-[#607296]">How often students join the room</p>
-                    <div class="mt-6 grid min-w-0 gap-6 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:items-center xl:grid-cols-1 2xl:grid-cols-[9.5rem_minmax(0,1fr)]">
-                        <div data-dashboard-donut class="relative mx-auto h-40 w-40 shrink-0 rounded-full shadow-[0_16px_36px_rgba(19,87,232,0.16)]" style="{{ $donutStyle }}">
-                            <div class="absolute inset-7 grid place-items-center rounded-full bg-white text-center shadow-inner">
-                                <span class="text-2xl font-extrabold text-[#071326]" data-count-up="{{ $periodResponses }}">0</span>
-                                <span class="text-[10px] font-semibold text-[#607296]">responses</span>
-                            </div>
-                        </div>
-                        <div class="grid min-w-0 gap-3">
-                            @foreach ($charts['attendance'] as $item)
-                                <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 text-xs">
-                                    <span class="h-2.5 w-2.5 rounded-full" style="background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span>
-                                    <span class="min-w-0 leading-4 text-[#53668d]">{{ $item['label'] }}</span>
-                                    <strong class="text-[#071326]">{{ $item['percentage'] }}%</strong>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#edf9f5] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.09)] sm:p-6 xl:col-span-6">
-                    <h2 class="text-lg font-extrabold text-[#071326]">Attendance change</h2>
-                    <p class="mt-1 text-sm text-[#607296]">How participation changed after the update</p>
-                    <div class="mt-6 grid gap-4">
-                        @foreach ($charts['attendanceChange'] as $item)
-                            <div class="min-w-0">
-                                <div class="flex min-w-0 items-end justify-between gap-4 text-xs"><span class="min-w-0 leading-4 text-[#42547a]">{{ $item['label'] }}</span><strong class="shrink-0 text-[#071326]">{{ $item['percentage'] }}%</strong></div>
-                                <div class="mt-2.5 h-2.5 overflow-hidden rounded-full bg-[#e8eef7]"><span data-dashboard-bar class="block h-full rounded-full" style="width: {{ min(100, $item['percentage']) }}%; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span></div>
-                            </div>
-                        @endforeach
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#fff6e7] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.09)] sm:p-6 xl:col-span-6">
-                    <h2 class="text-lg font-extrabold text-[#071326]">Top attendance barriers</h2>
-                    <p class="mt-1 text-sm text-[#607296]">The most common reasons students attend less often</p>
-                    <div class="mt-6 grid gap-4">
-                        @foreach ($charts['barriers'] as $item)
-                            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_3rem] items-center gap-3">
-                                <div class="min-w-0"><p class="text-xs font-semibold leading-4 text-[#42547a]">{{ $item['label'] }}</p><div class="mt-2 h-2 overflow-hidden rounded-full bg-[#e8eef7]"><span data-dashboard-bar class="block h-full rounded-full bg-gradient-to-r from-[#1357e8] to-[#6aa7ff]" style="width: {{ min(100, $item['percentage']) }}%"></span></div></div>
-                                <strong class="text-right text-sm text-[#071326]">{{ $item['percentage'] }}%</strong>
-                            </div>
-                        @endforeach
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-white/90 p-5 shadow-[0_18px_45px_rgba(31,72,132,0.09)] backdrop-blur sm:p-6 xl:col-span-4">
-                    <h2 class="text-lg font-extrabold text-[#071326]">Preferred format</h2>
-                    <p class="mt-1 text-sm text-[#607296]">How learners want to practise</p>
-                    <div class="mt-5 grid min-w-0 gap-3">
-                        @foreach ($charts['format'] as $item)
-                            <div class="flex min-w-0 items-center gap-3 rounded-2xl bg-[#f4f7fc] p-3">
-                                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[11px] font-extrabold text-white" style="background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}">{{ $item['percentage'] }}%</span>
-                                <span class="min-w-0 text-xs font-bold leading-5 text-[#42547a]">{{ $item['label'] }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#f2ecff] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.09)] sm:p-6 xl:col-span-4">
-                    <h2 class="text-lg font-extrabold text-[#071326]">Preferred time</h2>
-                    <p class="mt-1 text-sm text-[#607296]">When students want to join</p>
-                    <div class="mt-5 grid min-w-0 gap-3 sm:hidden">
-                        @foreach ($charts['preferredTime'] as $item)
-                            <div class="min-w-0 rounded-2xl bg-white/75 p-3">
-                                <div class="flex min-w-0 items-center justify-between gap-3 text-xs">
-                                    <span class="min-w-0 font-semibold leading-4 text-[#42547a]">{{ $item['label'] }}</span>
-                                    <strong class="shrink-0 text-[#071326]">{{ $item['percentage'] }}%</strong>
-                                </div>
-                                <div class="mt-2.5 h-2 overflow-hidden rounded-full bg-[#e5eaf5]"><span data-dashboard-bar class="block h-full rounded-full" style="width: {{ min(100, $item['percentage']) }}%; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span></div>
-                            </div>
-                        @endforeach
-                    </div>
-                    <div class="mt-6 hidden h-56 min-w-0 grid-cols-5 items-end gap-3 overflow-hidden border-b border-[#dce5f2] sm:grid">
-                        @foreach ($charts['preferredTime'] as $item)
-                            <div class="flex min-w-0 flex-col items-center justify-end gap-2 text-center">
-                                <strong class="text-[11px] text-[#071326]">{{ $item['percentage'] }}%</strong>
-                                <span data-dashboard-column class="w-full max-w-12 rounded-t-xl" style="height: {{ max(12, (int) round(($item['percentage'] / $maxPreferredTimePercentage) * 112)) }}px; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span>
-                                <span class="h-12 w-full overflow-hidden text-[8px] font-semibold leading-3 text-[#607296] sm:text-[9px]">{{ $item['label'] }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </article>
-
-                <article class="min-w-0 overflow-hidden rounded-[1.8rem] bg-[#071326] p-5 text-white shadow-[0_24px_55px_rgba(7,19,38,0.20)] sm:p-6 xl:col-span-4">
-                    <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-extrabold">Student voices</h2><span class="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-blue-100">Latest</span></div>
-                    <p class="mt-1 text-sm text-blue-100/65">What learners would change next</p>
-                    <div class="mt-5 grid gap-3">
-                        @forelse ($latestFeedback as $feedback)
-                            <blockquote class="rounded-2xl border border-white/10 bg-white/10 p-4 text-xs font-medium leading-5 text-blue-50">“{{ $feedback->answer_value }}”</blockquote>
-                        @empty
-                            <div class="rounded-2xl border border-dashed border-white/20 p-5 text-sm leading-6 text-blue-100">Written feedback will appear here when students share suggestions.</div>
-                        @endforelse
-                    </div>
-                </article>
-            </section>
+            <div x-cloak x-show="rowTooltip" @click="rowTooltip = null" class="fixed inset-0 z-50 grid place-items-center bg-[#0b1739]/25 p-4" role="presentation"><div @click.stop class="w-full max-w-sm rounded-2xl bg-[#0b1739] p-4 text-white shadow-2xl" role="dialog" aria-modal="true" aria-label="Chart value"><p class="text-sm font-bold" x-text="rowTooltip?.label"></p><p class="mt-2 text-xs leading-5 text-blue-100"><span x-text="rowTooltip?.count"></span> responses · <span x-text="formatPercent(rowTooltip?.percentage)"></span><br>Of <span x-text="rowTooltip?.denominator"></span> responses answering this question</p><button type="button" @click="rowTooltip = null" class="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-[#0b1739]">Close</button></div></div>
         </div>
     </div>
 </x-app-layout>

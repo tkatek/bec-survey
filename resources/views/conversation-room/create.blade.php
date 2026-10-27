@@ -82,26 +82,28 @@
                     <span>4–5 minutes</span>
                 </div>
 
-                <div class="survey-intro-copy" data-intro-reveal>
-                    <p>Your voice shapes the room.</p>
-                    <h1>Help us make speaking English <span>feel more natural.</span></h1>
-                    <strong>Tell us what works, what gets in the way, and what would make you want to join more often.</strong>
-                </div>
+                <div class="survey-intro-panel">
+                    <div class="survey-intro-copy" data-intro-reveal>
+                        <p>Your voice shapes the room.</p>
+                        <h1>Help us make speaking English <span>feel more natural.</span></h1>
+                        <strong>Tell us what works, what gets in the way, and what would make you want to join more often.</strong>
+                    </div>
 
-                <ul class="survey-intro-points" data-intro-reveal aria-label="Conversation Room benefits">
-                    <li>
-                        <span><svg viewBox="0 0 24 24"><use href="#survey-icon-microphone"></use></svg></span>
-                        Speak with confidence
-                    </li>
-                    <li>
-                        <span><svg viewBox="0 0 24 24"><use href="#survey-icon-users"></use></svg></span>
-                        Meet other learners
-                    </li>
-                    <li>
-                        <span><svg viewBox="0 0 24 24"><use href="#survey-icon-heart"></use></svg></span>
-                        Shape future sessions
-                    </li>
-                </ul>
+                    <ul class="survey-intro-points" data-intro-reveal aria-label="Conversation Room benefits">
+                        <li>
+                            <span><svg viewBox="0 0 24 24"><use href="#survey-icon-microphone"></use></svg></span>
+                            Speak with confidence
+                        </li>
+                        <li>
+                            <span><svg viewBox="0 0 24 24"><use href="#survey-icon-users"></use></svg></span>
+                            Meet other learners
+                        </li>
+                        <li>
+                            <span><svg viewBox="0 0 24 24"><use href="#survey-icon-heart"></use></svg></span>
+                            Shape future sessions
+                        </li>
+                    </ul>
+                </div>
 
                 <img
                     class="survey-intro-photo"
@@ -132,13 +134,28 @@
                         </div>
                     </header>
 
-                    <ol class="survey-section-track" aria-label="Survey sections" x-show="!isComplete">
-                        @foreach ($sections as $section)
-                            <li :class="{ 'is-active': isSectionActive({{ $loop->index }}), 'is-complete': isSectionComplete({{ $loop->index }}) }">
-                                <span>{{ $loop->iteration }}</span>
-                                <em>{{ $section }}</em>
+                    <ol
+                        class="survey-section-track"
+                        x-cloak
+                        x-show="!isComplete"
+                        :data-density="sectionTrackDensity"
+                        :style="`--survey-section-columns: ${Math.max(visibleSectionSteps.length, 1)}`"
+                        aria-label="Survey sections"
+                    >
+                        <template x-for="step in visibleSectionSteps" :key="step.key">
+                            <li
+                                :class="{
+                                    'is-active': step.isActive,
+                                    'is-complete': step.isComplete,
+                                    'is-ellipsis': step.type === 'ellipsis',
+                                }"
+                                :aria-current="step.isActive ? 'step' : null"
+                                :aria-label="step.ariaLabel"
+                            >
+                                <span x-text="step.type === 'section' ? step.number : '…'" aria-hidden="true"></span>
+                                <em x-text="step.label" aria-hidden="true"></em>
                             </li>
-                        @endforeach
+                        </template>
                     </ol>
 
                     <div class="survey-progress" x-show="!isComplete">

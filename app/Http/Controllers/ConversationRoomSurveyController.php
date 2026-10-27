@@ -6,6 +6,7 @@ use App\Http\Requests\StoreConversationRoomResponseRequest;
 use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyVersion;
+use App\Services\SurveyAlertService;
 use App\SurveyDraftManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
@@ -28,8 +29,8 @@ class ConversationRoomSurveyController extends Controller
     public function store(
         StoreConversationRoomResponseRequest $request,
         SurveyDraftManager $surveys,
-    ): RedirectResponse
-    {
+        SurveyAlertService $alerts,
+    ): RedirectResponse {
         $answers = $request->validated('answers');
         $version = SurveyVersion::query()
             ->where('number', $request->integer('survey_version'))
@@ -107,6 +108,14 @@ class ConversationRoomSurveyController extends Controller
                 ->all();
 
             $response->choices()->createMany($multiSelectAnswers);
+        });
+
+        defer(function () use ($alerts): void {
+            try {
+                $alerts->evaluate();
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
         });
 
         return redirect()->route('conversation-room.thank-you');

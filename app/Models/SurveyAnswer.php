@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'survey_question_id',
@@ -41,5 +42,11 @@ class SurveyAnswer extends Model
     public function option(): BelongsTo
     {
         return $this->belongsTo(SurveyQuestionOption::class, 'survey_question_option_id')->withTrashed();
+    }
+
+    /** @return HasMany<FeedbackThemeAssignment, $this> */
+    public function themeAssignments(): HasMany
+    {
+        return $this->hasMany(FeedbackThemeAssignment::class);
     }
 }

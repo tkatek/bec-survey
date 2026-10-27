@@ -18,33 +18,36 @@ class DashboardControllerTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_administrator_can_view_empty_analytics(): void
+    public function test_non_administrator_cannot_view_the_dashboard(): void
     {
         $this->seed(SurveyQuestionSeeder::class);
 
         $this->actingAs(User::factory()->create())
             ->get(route('dashboard'))
-            ->assertOk()
-            ->assertSee('Conversation Room Feedback Survey')
-            ->assertSee('Your analytics are ready');
+            ->assertForbidden();
     }
 
-    public function test_dashboard_aggregates_normalized_answers_for_the_selected_period(): void
+    public function test_administrator_can_view_analytics_from_the_shared_payload(): void
     {
         $this->seed(SurveyQuestionSeeder::class);
-        $question = SurveyQuestion::query()->with('options')->where('key', 'activity_usefulness')->sole();
+        $question = SurveyQuestion::query()->with(['options', 'version'])->where('key', 'activity_usefulness')->sole();
         $option = $question->options->firstWhere('label', 'Very useful');
-        $response = ConversationRoomResponse::factory()->create(['created_at' => now()]);
+        $response = ConversationRoomResponse::factory()->create([
+            'survey_version' => $question->version->number,
+            'created_at' => now(),
+        ]);
         $response->answers()->create([
             'survey_question_id' => $question->id,
             'survey_question_option_id' => $option->id,
             'answer_value' => $option->label,
         ]);
 
-        $this->actingAs(User::factory()->create())
-            ->get(route('dashboard', ['period' => 30]))
+        $this->actingAs(User::factory()->administrator()->create())
+            ->get(route('dashboard'))
             ->assertOk()
-            ->assertViewHas('periodResponses', 1)
-            ->assertViewHas('positiveUsefulnessPercentage', 100);
+            ->assertSee('Conversation Room Feedback Survey')
+            ->assertSee('Responses Over Time')
+            ->assertViewHas('analytics', fn (array $analytics): bool => $analytics['overview']['responses'] === 1
+                && (float) $analytics['overview']['positiveActivity']['percentage'] === 100.0);
     }
 }

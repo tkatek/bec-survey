@@ -4,9 +4,12 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
+use App\Models\SurveySection;
 use App\Models\SurveyVersion;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Collection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ConversationRoomSurveyControllerTest extends TestCase
@@ -27,6 +30,49 @@ class ConversationRoomSurveyControllerTest extends TestCase
     public function test_conversation_room_path_redirects_to_the_student_survey(): void
     {
         $this->get('/conversation-room')->assertRedirect(route('conversation-room.create'));
+    }
+
+    #[DataProvider('sectionCounts')]
+    public function test_student_stepper_renders_each_active_section_count_in_order(int $sectionCount): void
+    {
+        $version = $this->createActiveSurveyVersion(120);
+
+        foreach (array_reverse(range(1, $sectionCount)) as $position) {
+            $this->createSectionWithQuestion($version, "Section {$position}", $position);
+        }
+
+        $expectedTitles = collect(range(1, $sectionCount))->map(fn (int $position): string => "Section {$position}")->all();
+        $expectedIndexes = range(0, $sectionCount - 1);
+
+        $this->get(route('conversation-room.create'))
+            ->assertOk()
+            ->assertViewHas('sections', fn (Collection $sections): bool => $sections->all() === $expectedTitles)
+            ->assertViewHas('surveyConfiguration', function (array $configuration) use ($expectedIndexes, $expectedTitles): bool {
+                return array_column($configuration['sections'], 'name') === $expectedTitles
+                    && array_column($configuration['sections'], 'start') === $expectedIndexes
+                    && array_column($configuration['sections'], 'end') === $expectedIndexes;
+            });
+    }
+
+    public function test_student_stepper_excludes_hidden_sections_and_sections_without_visible_questions(): void
+    {
+        $version = $this->createActiveSurveyVersion(121);
+        $this->createSectionWithQuestion($version, 'Hidden section', 1, sectionActive: false);
+        $this->createSectionWithQuestion($version, 'No visible questions', 2, questionActive: false);
+        $this->createSectionWithQuestion($version, 'First visible section', 3);
+        $this->createSectionWithQuestion($version, 'Second visible section', 4);
+
+        $this->get(route('conversation-room.create'))
+            ->assertOk()
+            ->assertViewHas(
+                'sections',
+                fn (Collection $sections): bool => $sections->all() === ['First visible section', 'Second visible section'],
+            )
+            ->assertViewHas('surveyConfiguration', function (array $configuration): bool {
+                return array_column($configuration['sections'], 'name') === ['First visible section', 'Second visible section']
+                    && array_column($configuration['sections'], 'start') === [0, 1]
+                    && array_column($configuration['sections'], 'end') === [0, 1];
+            });
     }
 
     public function test_valid_anonymous_submission_creates_a_response_and_normalized_answers(): void
@@ -127,6 +173,53 @@ class ConversationRoomSurveyControllerTest extends TestCase
         return [
             'survey_version' => SurveyVersion::query()->active()->value('number'),
             'answers' => $answers,
+        ];
+    }
+
+    private function createSectionWithQuestion(
+        SurveyVersion $version,
+        string $title,
+        int $sortOrder,
+        bool $sectionActive = true,
+        bool $questionActive = true,
+    ): void {
+        $section = SurveySection::factory()
+            ->for($version, 'version')
+            ->create([
+                'title' => $title,
+                'sort_order' => $sortOrder,
+                'is_active' => $sectionActive,
+            ]);
+
+        SurveyQuestion::factory()
+            ->for($version, 'version')
+            ->for($section, 'surveySection')
+            ->create([
+                'section' => $title,
+                'sort_order' => 1,
+                'is_active' => $questionActive,
+            ]);
+    }
+
+    private function createActiveSurveyVersion(int $number): SurveyVersion
+    {
+        SurveyVersion::query()->active()->update(['status' => SurveyVersion::STATUS_ARCHIVED]);
+
+        return SurveyVersion::factory()->active()->create(['number' => $number]);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function sectionCounts(): array
+    {
+        return [
+            'three sections' => [3],
+            'four sections' => [4],
+            'five sections' => [5],
+            'six sections' => [6],
+            'eight sections' => [8],
+            'ten sections' => [10],
         ];
     }
 }

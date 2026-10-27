@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\SurveyQuestion;
+use App\Models\SurveyVersion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,8 +26,18 @@ class StoreSurveyQuestionRequest extends FormRequest
      */
     public function rules(): array
     {
+        $editingVersion = SurveyVersion::query()->draft()->first() ?? SurveyVersion::query()->active()->first();
+
         return [
-            'section_stable_id' => ['required', 'uuid', Rule::exists('survey_sections', 'stable_id')->whereNull('deleted_at')],
+            'section_stable_id' => [
+                'required',
+                'uuid',
+                Rule::exists('survey_sections', 'stable_id')->where(
+                    fn ($query) => $query
+                        ->when($editingVersion, fn ($versionQuery) => $versionQuery->where('survey_version_id', $editingVersion->id))
+                        ->whereNull('deleted_at'),
+                ),
+            ],
             'position' => ['required', 'integer', 'min:1', 'max:65535'],
             'prompt' => ['required', 'string', 'max:500'],
             'help_text' => ['nullable', 'string', 'max:255'],
@@ -67,6 +78,29 @@ class StoreSurveyQuestionRequest extends FormRequest
             function (Validator $validator): void {
                 if ($validator->errors()->hasAny(['type', 'max_selections', 'options'])) {
                     return;
+                }
+
+                $sourceQuestion = $this->route('question');
+                $allowedStableIds = collect();
+
+                if ($sourceQuestion instanceof SurveyQuestion) {
+                    $editingVersion = SurveyVersion::query()->draft()->first() ?? SurveyVersion::query()->active()->first();
+                    $allowedStableIds = $editingVersion?->questions()
+                        ->where('stable_id', $sourceQuestion->stable_id)
+                        ->first()
+                        ?->options()
+                        ->pluck('stable_id') ?? collect();
+                }
+
+                foreach ($this->array('options') as $index => $option) {
+                    $stableId = $option['stable_id'] ?? null;
+
+                    if (filled($stableId) && ! $allowedStableIds->contains($stableId)) {
+                        $validator->errors()->add(
+                            "options.{$index}.stable_id",
+                            'This answer option identifier does not belong to the question being edited.',
+                        );
+                    }
                 }
 
                 if ($this->input('type') !== SurveyQuestion::TYPE_MULTIPLE_CHOICE) {
