@@ -21,6 +21,7 @@
         $donutStyle = $periodResponses === 0
             ? 'background: conic-gradient(#e7edf7 0 100%)'
             : 'background: conic-gradient('.implode(', ', $attendanceSegments).')';
+        $maxPreferredTimePercentage = max(1, (int) collect($charts['preferredTime'])->max('percentage'));
     @endphp
 
     <div x-data="dashboardAnalytics" class="relative min-h-screen min-w-0 overflow-x-hidden bg-[radial-gradient(circle_at_8%_0%,_#d5e8ff_0,_#edf4ff_32%,_#e9effb_70%,_#f5f8ff_100%)]">
@@ -231,11 +232,22 @@
                 <article class="min-w-0 overflow-hidden rounded-[1.8rem] border border-white/80 bg-gradient-to-br from-white via-white to-[#f2ecff] p-5 shadow-[0_18px_45px_rgba(31,72,132,0.09)] sm:p-6 xl:col-span-4">
                     <h2 class="text-lg font-extrabold text-[#071326]">Preferred time</h2>
                     <p class="mt-1 text-sm text-[#607296]">When students want to join</p>
-                    <div class="mt-6 grid h-56 min-w-0 grid-cols-5 items-end gap-2 overflow-hidden border-b border-[#dce5f2] sm:gap-3">
+                    <div class="mt-5 grid min-w-0 gap-3 sm:hidden">
+                        @foreach ($charts['preferredTime'] as $item)
+                            <div class="min-w-0 rounded-2xl bg-white/75 p-3">
+                                <div class="flex min-w-0 items-center justify-between gap-3 text-xs">
+                                    <span class="min-w-0 font-semibold leading-4 text-[#42547a]">{{ $item['label'] }}</span>
+                                    <strong class="shrink-0 text-[#071326]">{{ $item['percentage'] }}%</strong>
+                                </div>
+                                <div class="mt-2.5 h-2 overflow-hidden rounded-full bg-[#e5eaf5]"><span data-dashboard-bar class="block h-full rounded-full" style="width: {{ min(100, $item['percentage']) }}%; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span></div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="mt-6 hidden h-56 min-w-0 grid-cols-5 items-end gap-3 overflow-hidden border-b border-[#dce5f2] sm:grid">
                         @foreach ($charts['preferredTime'] as $item)
                             <div class="flex min-w-0 flex-col items-center justify-end gap-2 text-center">
                                 <strong class="text-[11px] text-[#071326]">{{ $item['percentage'] }}%</strong>
-                                <span data-dashboard-column class="w-full max-w-12 rounded-t-xl" style="height: {{ max(8, min(100, $item['percentage']) * 1.15) }}px; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span>
+                                <span data-dashboard-column class="w-full max-w-12 rounded-t-xl" style="height: {{ max(12, (int) round(($item['percentage'] / $maxPreferredTimePercentage) * 112)) }}px; background-color: {{ $toneColors[$item['tone']] ?? $toneColors['blue'] }}"></span>
                                 <span class="h-12 w-full overflow-hidden text-[8px] font-semibold leading-3 text-[#607296] sm:text-[9px]">{{ $item['label'] }}</span>
                             </div>
                         @endforeach

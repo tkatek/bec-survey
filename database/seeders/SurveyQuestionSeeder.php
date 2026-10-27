@@ -3,7 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\SurveyQuestion;
+use App\Models\SurveySection;
+use App\Models\SurveyVersion;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class SurveyQuestionSeeder extends Seeder
 {
@@ -12,13 +15,51 @@ class SurveyQuestionSeeder extends Seeder
      */
     public function run(): void
     {
+        $version = SurveyVersion::query()->active()->firstOrCreate(
+            [],
+            [
+                'number' => 2,
+                'status' => SurveyVersion::STATUS_ACTIVE,
+                'published_at' => now(),
+            ],
+        );
+        $sections = collect($this->sections())
+            ->mapWithKeys(function (array $sectionData, int $index) use ($version): array {
+                $section = SurveySection::query()->firstOrCreate(
+                    [
+                        'survey_version_id' => $version->id,
+                        'title' => $sectionData['title'],
+                    ],
+                    [
+                        'stable_id' => (string) Str::uuid(),
+                        'description' => $sectionData['description'],
+                        'sort_order' => $index + 1,
+                        'is_active' => true,
+                    ],
+                );
+
+                return [$sectionData['legacy_title'] => $section];
+            });
+        $sectionQuestionPositions = [];
+
         foreach ($this->questions() as $questionData) {
             $options = $questionData['options'];
             unset($questionData['options']);
+            $legacySection = $questionData['section'];
+            $section = $sections->get($legacySection);
+            $sectionQuestionPositions[$legacySection] = ($sectionQuestionPositions[$legacySection] ?? 0) + 1;
+            $questionData['survey_version_id'] = $version->id;
+            $questionData['survey_section_id'] = $section->id;
+            $questionData['stable_id'] = (string) Str::uuid();
+            $questionData['section'] = $section->title;
+            $questionData['sort_order'] = $sectionQuestionPositions[$legacySection];
 
             $question = SurveyQuestion::query()
                 ->withTrashed()
-                ->firstOrCreate(['key' => $questionData['key']], $questionData);
+                ->firstOrCreate([
+                    'survey_version_id' => $version->id,
+                    'key' => $questionData['key'],
+                ], $questionData);
 
             if ($question->options()->withTrashed()->exists()) {
                 continue;
@@ -27,6 +68,7 @@ class SurveyQuestionSeeder extends Seeder
             $question->options()->createMany(
                 collect($options)
                     ->map(fn (array $option, int $index): array => [
+                        'stable_id' => (string) Str::uuid(),
                         'label' => $option[0],
                         'icon' => $option[1],
                         'tone' => $option[2],
@@ -37,6 +79,35 @@ class SurveyQuestionSeeder extends Seeder
                     ->all(),
             );
         }
+    }
+
+    /**
+     * @return array<int, array{legacy_title: string, title: string, description: string}>
+     */
+    private function sections(): array
+    {
+        return [
+            [
+                'legacy_title' => 'Attendance and participation',
+                'title' => 'Attendance & Participation',
+                'description' => 'Questions about attendance and participation in the Conversation Room.',
+            ],
+            [
+                'legacy_title' => 'The updated Conversation Room',
+                'title' => 'The Updated Conversation Room',
+                'description' => 'Questions about the updated Conversation Room experience.',
+            ],
+            [
+                'legacy_title' => 'Your preferences',
+                'title' => 'Your Preferences',
+                'description' => 'Questions about preferred times, days and improvements.',
+            ],
+            [
+                'legacy_title' => 'Your feedback',
+                'title' => 'Your Feedback',
+                'description' => 'Final questions about future attendance and open feedback.',
+            ],
+        ];
     }
 
     /**

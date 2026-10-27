@@ -6,6 +6,7 @@ use App\Models\SurveyQuestion;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreSurveyQuestionRequest extends FormRequest
 {
@@ -14,7 +15,7 @@ class StoreSurveyQuestionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->is_admin === true;
     }
 
     /**
@@ -25,7 +26,8 @@ class StoreSurveyQuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'section' => ['required', 'string', Rule::in(SurveyQuestion::sections())],
+            'section_stable_id' => ['required', 'uuid', Rule::exists('survey_sections', 'stable_id')->whereNull('deleted_at')],
+            'position' => ['required', 'integer', 'min:1', 'max:65535'],
             'prompt' => ['required', 'string', 'max:500'],
             'help_text' => ['nullable', 'string', 'max:255'],
             'type' => ['required', 'string', Rule::in(array_keys(SurveyQuestion::typeLabels()))],
@@ -44,8 +46,8 @@ class StoreSurveyQuestionRequest extends FormRequest
                 'min:2',
                 'max:20',
             ],
-            'options.*.id' => ['nullable', 'integer'],
-            'options.*.label' => ['required', 'string', 'max:255', 'distinct'],
+            'options.*.stable_id' => ['nullable', 'uuid', 'distinct:strict'],
+            'options.*.label' => ['required', 'string', 'max:255', 'distinct:ignore_case'],
             'options.*.icon' => ['required', 'string', Rule::in($this->allowedIcons())],
             'options.*.tone' => ['required', 'string', Rule::in(['blue', 'green', 'orange', 'purple', 'red', 'neutral'])],
             'options.*.group_name' => [
@@ -54,6 +56,31 @@ class StoreSurveyQuestionRequest extends FormRequest
                 'string',
                 'max:60',
             ],
+        ];
+    }
+
+    /** @return array<int, callable(Validator): void> */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($validator->errors()->hasAny(['type', 'max_selections', 'options'])) {
+                    return;
+                }
+
+                if ($this->input('type') !== SurveyQuestion::TYPE_MULTIPLE_CHOICE) {
+                    return;
+                }
+
+                $optionCount = count($this->array('options'));
+
+                if ($this->integer('max_selections') > $optionCount) {
+                    $validator->errors()->add(
+                        'max_selections',
+                        'The maximum selections cannot exceed the number of answer options.',
+                    );
+                }
+            },
         ];
     }
 
@@ -66,6 +93,7 @@ class StoreSurveyQuestionRequest extends FormRequest
             'options.required' => 'Add at least two answer options for this question.',
             'options.*.label.required' => 'Every answer option needs a label.',
             'options.*.label.distinct' => 'Answer option labels must be different.',
+            'options.*.stable_id.distinct' => 'Answer option identifiers must be different.',
             'options.*.group_name.required' => 'Every grouped option needs a group name.',
             'max_selections.required' => 'Set the maximum number of choices students may select.',
         ];

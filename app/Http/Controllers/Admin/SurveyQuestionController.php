@@ -6,179 +6,111 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSurveyQuestionRequest;
 use App\Http\Requests\UpdateSurveyQuestionRequest;
 use App\Models\SurveyQuestion;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\SurveyDraftManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class SurveyQuestionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(): View
+    public function index(SurveyDraftManager $surveys): View
     {
-        $questions = SurveyQuestion::query()
-            ->with(['options' => fn ($query) => $query->where('is_active', true)])
-            ->withCount('answers')
-            ->ordered()
-            ->get();
-
-        return view('admin.questions.index', compact('questions'));
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): View
-    {
-        return view('admin.questions.create', [
-            'question' => new SurveyQuestion([
-                'section' => SurveyQuestion::sections()[0],
-                'type' => SurveyQuestion::TYPE_SINGLE_CHOICE,
-                'is_required' => true,
-                'is_active' => true,
-            ]),
-            'sections' => SurveyQuestion::sections(),
-            'types' => SurveyQuestion::typeLabels(),
+        return view('admin.questions.index', [
+            'surveyState' => $surveys->managementState(),
+            'questionTypes' => SurveyQuestion::typeLabels(),
+            'iconChoices' => $this->iconChoices(),
+            'toneChoices' => [
+                'blue' => 'Blue',
+                'green' => 'Green',
+                'orange' => 'Orange',
+                'purple' => 'Purple',
+                'red' => 'Red',
+                'neutral' => 'Gray',
+            ],
+            'surveyRoutes' => [
+                'questions' => url('/admin/questions'),
+                'questionOrder' => route('admin.question-order.update'),
+                'sections' => url('/admin/sections'),
+                'sectionOrder' => route('admin.section-order.update'),
+                'publish' => route('admin.published-survey.store'),
+                'fullPreview' => route('admin.survey-preview'),
+            ],
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreSurveyQuestionRequest $request): RedirectResponse
+    public function store(StoreSurveyQuestionRequest $request, SurveyDraftManager $surveys): JsonResponse
     {
-        $validated = $request->validated();
+        $question = $surveys->saveQuestion($request->validated(), $request->user());
 
-        DB::transaction(function () use ($validated): void {
-            $question = SurveyQuestion::create([
-                ...Arr::except($validated, 'options'),
-                'key' => $this->generateKey($validated['prompt']),
-                'sort_order' => (int) SurveyQuestion::query()->max('sort_order') + 1,
-                'max_selections' => $validated['type'] === SurveyQuestion::TYPE_MULTIPLE_CHOICE
-                    ? $validated['max_selections']
-                    : null,
-            ]);
-
-            $this->syncOptions($question, $validated['options'] ?? []);
-        });
-
-        return redirect()
-            ->route('admin.questions.index')
-            ->with('status', 'Question added to the survey.');
+        return $this->stateResponse(
+            $surveys,
+            'Question added to the draft survey.',
+            $question->stable_id,
+            201,
+        );
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function edit(SurveyQuestion $question): View
-    {
-        $question->load(['options' => fn ($query) => $query->where('is_active', true)]);
+    public function update(
+        UpdateSurveyQuestionRequest $request,
+        SurveyQuestion $question,
+        SurveyDraftManager $surveys,
+    ): JsonResponse {
+        $question = $surveys->saveQuestion($request->validated(), $request->user(), $question);
 
-        return view('admin.questions.edit', [
-            'question' => $question,
-            'sections' => SurveyQuestion::sections(),
-            'types' => SurveyQuestion::typeLabels(),
-        ]);
+        return $this->stateResponse($surveys, 'Question changes saved to the draft.', $question->stable_id);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateSurveyQuestionRequest $request, SurveyQuestion $question): RedirectResponse
-    {
-        $validated = $request->validated();
+    public function destroy(
+        SurveyQuestion $question,
+        SurveyDraftManager $surveys,
+    ): JsonResponse {
+        $surveys->deleteQuestion($question, request()->user());
 
-        if ($question->is_active && ! $validated['is_active'] && SurveyQuestion::query()->active()->count() <= 1) {
-            return back()
-                ->withInput()
-                ->withErrors(['is_active' => 'The survey must keep at least one active question.']);
-        }
-
-        DB::transaction(function () use ($question, $validated): void {
-            $question->update([
-                ...Arr::except($validated, 'options'),
-                'max_selections' => $validated['type'] === SurveyQuestion::TYPE_MULTIPLE_CHOICE
-                    ? $validated['max_selections']
-                    : null,
-            ]);
-
-            $this->syncOptions($question, $validated['options'] ?? []);
-        });
-
-        return redirect()
-            ->route('admin.questions.index')
-            ->with('status', 'Question updated.');
+        return $this->stateResponse(
+            $surveys,
+            'Question removed from the draft. Historical responses were preserved.',
+        );
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(SurveyQuestion $question): RedirectResponse
-    {
-        if ($question->is_active && SurveyQuestion::query()->active()->count() <= 1) {
-            return back()->with('error', 'The survey must keep at least one active question.');
-        }
-
-        $question->delete();
-
-        return redirect()
-            ->route('admin.questions.index')
-            ->with('status', 'Question removed from the live survey. Existing answers were preserved.');
+    private function stateResponse(
+        SurveyDraftManager $surveys,
+        string $message,
+        ?string $focusStableId = null,
+        int $status = 200,
+    ): JsonResponse {
+        return response()->json([
+            'message' => $message,
+            'focusStableId' => $focusStableId,
+            'state' => $surveys->managementState(),
+        ], $status);
     }
 
-    private function generateKey(string $prompt): string
+    /** @return array<string, string> */
+    private function iconChoices(): array
     {
-        $baseKey = Str::limit(Str::slug($prompt, '_'), 64, '');
-        $baseKey = $baseKey !== '' ? $baseKey : 'question';
-        $key = $baseKey;
-        $suffix = 2;
-
-        while (SurveyQuestion::query()->withTrashed()->where('key', $key)->exists()) {
-            $key = $baseKey.'_'.$suffix;
-            $suffix++;
-        }
-
-        return $key;
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $options
-     */
-    private function syncOptions(SurveyQuestion $question, array $options): void
-    {
-        $retainedOptionIds = [];
-
-        foreach (array_values($options) as $index => $optionData) {
-            $optionId = isset($optionData['id'])
-                ? (int) $optionData['id']
-                : null;
-            $option = $optionId
-                ? $question->options()->whereKey($optionId)->first()
-                : null;
-
-            $attributes = [
-                ...Arr::only($optionData, ['label', 'icon', 'tone', 'group_name']),
-                'group_name' => $question->type === SurveyQuestion::TYPE_GROUPED_CHOICE
-                    ? $optionData['group_name']
-                    : null,
-                'sort_order' => $index + 1,
-                'is_active' => true,
-            ];
-
-            if ($option) {
-                $option->update($attributes);
-            } else {
-                $option = $question->options()->create($attributes);
-            }
-
-            $retainedOptionIds[] = $option->id;
-        }
-
-        $question->options()
-            ->when($retainedOptionIds !== [], fn ($query) => $query->whereNotIn('id', $retainedOptionIds))
-            ->delete();
+        return [
+            'message-circle' => 'Conversation',
+            'users' => 'People',
+            'calendar' => 'Calendar',
+            'calendar-days' => 'Calendar days',
+            'clock' => 'Clock',
+            'star' => 'Star',
+            'thumbs-up' => 'Thumbs up',
+            'thumbs-down' => 'Thumbs down',
+            'lightbulb' => 'Idea',
+            'microphone' => 'Microphone',
+            'gamepad' => 'Game',
+            'target' => 'Target',
+            'help-circle' => 'Help',
+            'info' => 'Information',
+            'check-circle' => 'Check',
+            'globe' => 'Globe',
+            'book-open' => 'Book',
+            'sparkles' => 'Sparkles',
+            'heart' => 'Heart',
+            'ban' => 'Not allowed',
+            'timer' => 'Timer',
+            'sun' => 'Sun',
+            'moon' => 'Moon',
+        ];
     }
 }

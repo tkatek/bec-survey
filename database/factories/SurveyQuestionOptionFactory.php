@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<SurveyQuestionOption>
@@ -20,6 +21,7 @@ class SurveyQuestionOptionFactory extends Factory
     {
         return [
             'survey_question_id' => SurveyQuestion::factory(),
+            'stable_id' => (string) Str::uuid(),
             'label' => fake()->sentence(3),
             'icon' => 'message-circle',
             'tone' => fake()->randomElement(['blue', 'green', 'orange', 'purple', 'red', 'neutral']),

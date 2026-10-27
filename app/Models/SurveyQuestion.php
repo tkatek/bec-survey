@@ -7,10 +7,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
+    'survey_version_id',
+    'survey_section_id',
+    'stable_id',
     'key',
     'section',
     'prompt',
@@ -75,7 +79,26 @@ class SurveyQuestion extends Model
      */
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderBy('id');
+        return $query
+            ->orderBy(
+                SurveySection::query()
+                    ->select('sort_order')
+                    ->whereColumn('survey_sections.id', 'survey_questions.survey_section_id'),
+            )
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    /** @return BelongsTo<SurveyVersion, $this> */
+    public function version(): BelongsTo
+    {
+        return $this->belongsTo(SurveyVersion::class, 'survey_version_id');
+    }
+
+    /** @return BelongsTo<SurveySection, $this> */
+    public function surveySection(): BelongsTo
+    {
+        return $this->belongsTo(SurveySection::class, 'survey_section_id');
     }
 
     /**
