@@ -1448,12 +1448,14 @@ textarea {
 
 @media (max-height: 600px) {
     .survey-layout {
-        min-height: 35.5rem;
-        height: auto;
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 
     .survey-stage {
-        overflow-y: auto;
+        overflow-y: hidden;
     }
 }
 
