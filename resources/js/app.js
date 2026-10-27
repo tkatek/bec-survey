@@ -19,6 +19,72 @@ const emptyAnswers = () => ({
     oneChange: '',
 });
 
+const animateSurveyComplete = (container, prefersReducedMotion) => {
+    if (!container) {
+        return;
+    }
+
+    const visual = container.querySelector('[data-success-visual]');
+    const ring = container.querySelector('[data-success-ring]');
+    const check = container.querySelector('[data-success-check]');
+    const content = container.querySelectorAll('[data-success-content]');
+
+    gsap.killTweensOf([visual, ring, check, ...content]);
+
+    if (prefersReducedMotion) {
+        gsap.set([visual, ...content], { clearProps: 'all', opacity: 1 });
+        gsap.set(check, { strokeDashoffset: 0 });
+        gsap.set(ring, { opacity: 0 });
+
+        return;
+    }
+
+    gsap.set(check, { strokeDashoffset: 24 });
+
+    gsap.timeline({ defaults: { ease: 'power3.out' } })
+        .fromTo(visual, {
+            opacity: 0,
+            scale: 0.68,
+            y: 10,
+        }, {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            duration: 0.48,
+            ease: 'back.out(1.65)',
+        })
+        .fromTo(ring, {
+            opacity: 0.55,
+            scale: 0.58,
+        }, {
+            opacity: 0,
+            scale: 1.32,
+            duration: 0.72,
+            ease: 'power2.out',
+        }, 0.05)
+        .to(check, {
+            strokeDashoffset: 0,
+            duration: 0.38,
+            ease: 'power2.out',
+        }, 0.18)
+        .fromTo(content, {
+            opacity: 0,
+            y: 12,
+        }, {
+            opacity: 1,
+            y: 0,
+            duration: 0.35,
+            stagger: 0.055,
+        }, 0.27)
+        .to(visual, {
+            y: -3,
+            duration: 0.16,
+            repeat: 1,
+            yoyo: true,
+            ease: 'sine.inOut',
+        }, 0.55);
+};
+
 Alpine.data('conversationRoomSurvey', () => ({
     answers: emptyAnswers(),
     currentStep: 0,
@@ -239,6 +305,15 @@ Alpine.data('conversationRoomSurvey', () => ({
         }, -1);
     },
 
+    animateCompletion() {
+        this.$nextTick(() => {
+            animateSurveyComplete(
+                this.$refs.stage.querySelector('[data-survey-complete]'),
+                this.prefersReducedMotion,
+            );
+        });
+    },
+
     isCurrentStepComplete() {
         const requiredAnswers = [
             'attendanceFrequency',
@@ -284,6 +359,10 @@ Alpine.data('conversationRoomSurvey', () => ({
             updateState();
             this.focusCurrentContent();
 
+            if (this.isComplete) {
+                this.animateCompletion();
+            }
+
             return;
         }
 
@@ -309,6 +388,10 @@ Alpine.data('conversationRoomSurvey', () => ({
                         onComplete: () => {
                             this.isAnimating = false;
                             this.focusCurrentContent();
+
+                            if (this.isComplete) {
+                                this.animateCompletion();
+                            }
                         },
                     });
                 });
@@ -338,6 +421,38 @@ Alpine.data('conversationRoomSurvey', () => ({
                 : `[data-survey-step="${this.currentStep}"] [data-question-title]`;
 
             document.querySelector(selector)?.focus({ preventScroll: true });
+        });
+    },
+}));
+
+Alpine.data('surveyThankYou', () => ({
+    init() {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        this.$nextTick(() => {
+            if (prefersReducedMotion) {
+                animateSurveyComplete(document.querySelector('[data-standalone-complete]'), true);
+
+                return;
+            }
+
+            gsap.timeline({
+                defaults: { ease: 'power3.out' },
+                onComplete: () => {
+                    animateSurveyComplete(document.querySelector('[data-standalone-complete]'), false);
+                },
+            })
+                .from('[data-survey-intro] [data-intro-reveal]', {
+                    opacity: 0,
+                    y: 16,
+                    duration: 0.42,
+                    stagger: 0.055,
+                })
+                .from('[data-survey-card]', {
+                    opacity: 0,
+                    x: 24,
+                    duration: 0.5,
+                }, 0.06);
         });
     },
 }));

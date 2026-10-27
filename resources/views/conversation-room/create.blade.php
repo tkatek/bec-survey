@@ -94,7 +94,7 @@
 
                 <img
                     class="survey-intro-photo"
-                    src="{{ asset('images/conversation-room/conversation-student.webp') }}"
+                    src="{{ asset('images/conversation-room/conversation-room-background.webp') }}"
                     alt="An English learner holding a notebook in a bright conversation space"
                 >
                 <div class="survey-intro-photo-fade" aria-hidden="true"></div>
@@ -164,16 +164,39 @@
                             @include('conversation-room.sections.preferences')
                             @include('conversation-room.sections.feedback')
 
-                            <section class="survey-complete" x-cloak x-show="isComplete" aria-labelledby="survey-complete-title">
-                                <div class="survey-complete-mark" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24"><use href="#survey-icon-check"></use></svg>
+                            <section
+                                class="survey-complete"
+                                x-cloak
+                                x-show="isComplete"
+                                data-survey-complete
+                                aria-labelledby="survey-complete-title"
+                            >
+                                <div class="survey-complete-visual" data-success-visual aria-hidden="true">
+                                    <span class="survey-complete-ring" data-success-ring></span>
+                                    <div class="survey-complete-mark">
+                                        <svg viewBox="0 0 24 24">
+                                            <path class="survey-complete-check" data-success-check d="m5 12 4 4L19 6"></path>
+                                        </svg>
+                                    </div>
                                 </div>
-                                <p>Survey complete</p>
-                                <h2 id="survey-complete-title" data-completion-title tabindex="-1">Thank you for sharing your experience.</h2>
-                                <span>Your feedback will help Boston English Center create a more useful and welcoming Conversation Room.</span>
-                                <button type="button" class="survey-button survey-button--secondary" @click="restartSurvey">
-                                    Review my answers
-                                </button>
+                                <p data-success-content>Survey complete</p>
+                                <h2 id="survey-complete-title" data-completion-title data-success-content tabindex="-1">
+                                    Thank you for sharing your experience.
+                                </h2>
+                                <span data-success-content>
+                                    Your feedback will help Boston English Center create a more useful and welcoming Conversation Room.
+                                </span>
+                                <div class="survey-complete-actions" data-success-content>
+                                    <a href="{{ route('conversation-room.create') }}" class="survey-button survey-button--primary">
+                                        Back to home
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="m9 18 6-6-6-6"></path>
+                                        </svg>
+                                    </a>
+                                    <button type="button" class="survey-button survey-button--secondary" @click="restartSurvey">
+                                        Review my answers
+                                    </button>
+                                </div>
                             </section>
                         </div>
 
