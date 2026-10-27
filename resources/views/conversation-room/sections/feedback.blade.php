@@ -10,13 +10,25 @@
         </div>
     </div>
 
+    @php
+        $attendanceLikelihoodOptions = [
+            ['label' => 'Very likely', 'icon' => 'star', 'tone' => 'green'],
+            ['label' => 'Somewhat likely', 'icon' => 'thumbs-up', 'tone' => 'blue'],
+            ['label' => 'Not sure', 'icon' => 'help-circle', 'tone' => 'neutral'],
+            ['label' => 'Somewhat unlikely', 'icon' => 'trending-down', 'tone' => 'orange'],
+            ['label' => 'Very unlikely', 'icon' => 'thumbs-down', 'tone' => 'red'],
+        ];
+    @endphp
+
     <fieldset class="survey-options">
         <legend class="sr-only">Likelihood of attending in the next two weeks</legend>
-        @foreach (['Very likely', 'Somewhat likely', 'Not sure', 'Somewhat unlikely', 'Very unlikely'] as $option)
+        @foreach ($attendanceLikelihoodOptions as $option)
             <label class="survey-option">
-                <input class="survey-option-input" type="radio" name="attendance_likelihood" value="{{ $option }}" x-model="answers.attendanceLikelihood">
-                <span class="survey-option-marker" aria-hidden="true">{{ $loop->iteration }}</span>
-                <span class="survey-option-copy">{{ $option }}</span>
+                <input class="survey-option-input" type="radio" name="attendance_likelihood" value="{{ $option['label'] }}" x-model="answers.attendanceLikelihood">
+                <span class="survey-option-marker" data-tone="{{ $option['tone'] }}" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><use href="#survey-icon-{{ $option['icon'] }}"></use></svg>
+                </span>
+                <span class="survey-option-copy">{{ $option['label'] }}</span>
                 <span class="survey-option-control" aria-hidden="true"></span>
             </label>
         @endforeach
