@@ -71,6 +71,11 @@
                     <img src="{{ asset('images/conversation-room/boston-english-center-logo.png') }}" alt="Boston English Center">
                 </div>
 
+                <div class="survey-intro-mobile-status" data-intro-reveal aria-label="Estimated completion time: 4 to 5 minutes">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#survey-icon-clock"></use></svg>
+                    <span>4–5 minutes</span>
+                </div>
+
                 <div class="survey-intro-copy" data-intro-reveal>
                     <p>Your voice shapes the room.</p>
                     <h1>Help us make speaking English <span>feel more natural.</span></h1>

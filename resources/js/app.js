@@ -100,7 +100,7 @@ Alpine.data('conversationRoomSurvey', () => ({
     optionPageSizes: {
         2: 6,
         8: 5,
-        10: 4,
+        10: 7,
     },
     optionTotals: {
         2: 12,
