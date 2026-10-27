@@ -1217,9 +1217,10 @@ textarea {
 
 @media (max-width: 640px) {
     .survey-layout {
+        height: auto;
         min-height: 100vh;
         min-height: 100dvh;
-        grid-template: 4.6rem minmax(0, 1fr) / minmax(0, 1fr);
+        grid-template: 4.6rem auto / minmax(0, 1fr);
         background: var(--bec-ice);
     }
 
@@ -1265,11 +1266,18 @@ textarea {
     }
 
     .survey-workspace {
+        min-height: calc(100dvh - 4.6rem);
         padding: 0.45rem;
     }
 
     .survey-card {
+        height: auto;
+        min-height: calc(100dvh - 5.5rem);
         border-radius: 1.15rem;
+    }
+
+    .survey-form {
+        flex: 1 0 auto;
     }
 
     .survey-card-header {
@@ -1351,7 +1359,13 @@ textarea {
     }
 
     .survey-stage {
+        overflow: visible;
+        flex: 1 0 auto;
         padding: 0.25rem 0.85rem 0.4rem;
+    }
+
+    .survey-step {
+        height: auto;
     }
 
     .survey-question-heading {
@@ -1389,7 +1403,7 @@ textarea {
     .survey-options--compact,
     .survey-options--days,
     .survey-options--two-columns {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         grid-auto-rows: auto;
         gap: 0.38rem;
         margin-top: 0.42rem;
@@ -1438,6 +1452,7 @@ textarea {
     .survey-option-copy {
         font-size: 0.86rem;
         line-height: 1.3;
+        overflow-wrap: anywhere;
     }
 
     .survey-option-control {
@@ -1452,6 +1467,7 @@ textarea {
     }
 
     .survey-split-fields {
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.42rem;
         margin-top: 0.42rem;
     }
@@ -1485,9 +1501,12 @@ textarea {
     }
 
     .survey-navigation {
+        position: relative;
+        z-index: 1;
         min-height: 3.55rem;
         grid-template-columns: 1fr auto;
         border-radius: 0 0 1.15rem 1.15rem;
+        background: white;
         padding: 0.4rem 0.85rem;
     }
 
