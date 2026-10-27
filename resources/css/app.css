@@ -664,16 +664,15 @@ textarea {
 }
 
 .survey-option--check .survey-option-control {
-    border-radius: 0.28rem;
+    border-radius: 50%;
 }
 
 .survey-option--check:has(.survey-option-input:checked) .survey-option-control::after {
-    inset: 0.13rem 0.26rem 0.29rem;
-    border: solid white;
-    border-width: 0 0.12rem 0.12rem 0;
-    border-radius: 0;
-    background: transparent;
-    transform: rotate(45deg);
+    inset: 0.25rem;
+    border: 0;
+    border-radius: 50%;
+    background: white;
+    transform: none;
 }
 
 .survey-selection-count {
@@ -1485,12 +1484,13 @@ textarea {
 
     .survey-options--compact {
         grid-template-columns: 1fr;
-        gap: 0.32rem;
+        gap: 0.38rem;
     }
 
     .survey-options--compact .survey-option {
         min-height: 4rem;
         gap: 0.5rem;
+        border-radius: 0.86rem;
         padding: 0.5rem 0.62rem;
     }
 
@@ -1498,6 +1498,7 @@ textarea {
         width: 2.55rem;
         height: 2.55rem;
         flex-basis: 2.55rem;
+        border-radius: 0.6rem;
     }
 
     .survey-options--compact .survey-option-copy {
