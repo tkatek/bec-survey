@@ -7,6 +7,8 @@ use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
 use App\Models\SurveyVersion;
 use App\Models\User;
+use App\Services\SurveyAnalyticsService;
+use App\Support\AnalyticsFilter;
 use App\SurveyDraftManager;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -40,6 +42,25 @@ class AnalyticsDataControllerTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson(route('admin.analytics.show', $query))
             ->assertForbidden();
+    }
+
+    public function test_cached_analytics_are_reused_until_invalidated(): void
+    {
+        $analytics = app(SurveyAnalyticsService::class);
+        $filter = AnalyticsFilter::fromValidated(['preset' => 'today']);
+        $firstPayload = $analytics->cachedBuild($filter);
+
+        Carbon::setTestNow(now()->addSecond());
+
+        $cachedPayload = $analytics->cachedBuild(AnalyticsFilter::fromValidated(['preset' => 'today']));
+
+        $this->assertSame($firstPayload['meta']['generatedAt'], $cachedPayload['meta']['generatedAt']);
+
+        $analytics->invalidateCache();
+
+        $refreshedPayload = $analytics->cachedBuild(AnalyticsFilter::fromValidated(['preset' => 'today']));
+
+        $this->assertNotSame($firstPayload['meta']['generatedAt'], $refreshedPayload['meta']['generatedAt']);
     }
 
     public function test_today_uses_normalized_completed_non_demo_responses_only(): void

@@ -24,7 +24,7 @@ class CommonAnswersController extends Controller
         SurveyAlertService $alerts,
     ): View {
         $filter = $request->filter();
-        $payload = $analytics->build($filter);
+        $payload = $analytics->cachedBuild($filter);
         $search = $request->string('search')->trim()->toString();
         $section = $request->string('section')->toString();
         $questionKey = $request->string('question')->toString();
@@ -98,7 +98,7 @@ class CommonAnswersController extends Controller
             'selectedAlert' => $alert ? $alerts->serialize($alert) + [
                 'evidenceResponseIds' => $alert->evidence_response_ids ?? [],
             ] : null,
-            'snapshotToken' => $snapshots->store($request->user()->id, $payload),
+            'snapshotToken' => $snapshots->store($request->session(), $payload),
             'alertData' => $alerts->toolbarData(),
         ]);
     }

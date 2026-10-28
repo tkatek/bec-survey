@@ -8,6 +8,7 @@ use App\Models\FeedbackTheme;
 use App\Models\SurveyAnswer;
 use App\Models\SurveyQuestion;
 use App\Services\SurveyAlertService;
+use App\Services\SurveyAnalyticsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,6 +19,7 @@ class FeedbackReviewController extends Controller
         UpdateFeedbackReviewRequest $request,
         SurveyAnswer $answer,
         SurveyAlertService $alerts,
+        SurveyAnalyticsService $analytics,
     ): RedirectResponse {
         abort_unless(
             $answer->question()->withTrashed()->where('type', SurveyQuestion::TYPE_LONG_TEXT)->exists(),
@@ -37,6 +39,8 @@ class FeedbackReviewController extends Controller
                 ])->all(),
             );
         });
+
+        $analytics->invalidateCache();
 
         defer(fn () => $alerts->evaluate());
 

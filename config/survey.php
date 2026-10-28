@@ -9,6 +9,8 @@ return [
     'analytics' => [
         'maximum_custom_range_days' => 366,
         'snapshot_minutes' => 15,
+        'cache_fresh_seconds' => (int) env('SURVEY_ANALYTICS_CACHE_FRESH_SECONDS', 15),
+        'cache_stale_seconds' => (int) env('SURVEY_ANALYTICS_CACHE_STALE_SECONDS', 60),
     ],
 
     'alerts' => [

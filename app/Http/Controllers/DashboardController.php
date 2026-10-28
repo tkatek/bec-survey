@@ -17,8 +17,8 @@ class DashboardController extends Controller
         SurveyAlertService $alerts,
     ): View {
         $filter = $request->filter();
-        $payload = $analytics->build($filter);
-        $snapshotToken = $snapshots->store($request->user()->id, $payload);
+        $payload = $analytics->cachedBuild($filter);
+        $snapshotToken = $snapshots->store($request->session(), $payload);
 
         return view('dashboard', [
             'analytics' => $payload,

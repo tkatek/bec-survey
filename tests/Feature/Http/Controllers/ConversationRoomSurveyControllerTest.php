@@ -6,6 +6,8 @@ use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
 use App\Models\SurveySection;
 use App\Models\SurveyVersion;
+use App\Services\SurveyAnalyticsService;
+use App\Support\AnalyticsFilter;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
@@ -137,6 +139,23 @@ class ConversationRoomSurveyControllerTest extends TestCase
         ));
         $this->assertDatabaseCount('conversation_room_responses', 1);
         $this->assertGreaterThan(14, $surveyResponse->answers->count());
+    }
+
+    public function test_valid_submission_invalidates_cached_analytics(): void
+    {
+        $this->seed(SurveyQuestionSeeder::class);
+        $analytics = app(SurveyAnalyticsService::class);
+        $filter = AnalyticsFilter::fromValidated(['preset' => 'month']);
+
+        $this->assertSame(0, $analytics->cachedBuild($filter)['overview']['responses']);
+
+        $this->post(route('conversation-room.store'), $this->validSurveyPayload())
+            ->assertRedirect(route('conversation-room.thank-you'));
+
+        $this->assertSame(
+            1,
+            $analytics->cachedBuild(AnalyticsFilter::fromValidated(['preset' => 'month']))['overview']['responses'],
+        );
     }
 
     public function test_empty_submission_is_rejected_without_creating_a_response(): void

@@ -15,11 +15,11 @@ class AnalyticsDataController extends Controller
         SurveyAnalyticsService $analytics,
         AnalyticsSnapshotService $snapshots,
     ): JsonResponse {
-        $payload = $analytics->build($request->filter());
+        $payload = $analytics->cachedBuild($request->filter());
 
         return response()->json([
             'analytics' => $payload,
-            'snapshotToken' => $snapshots->store($request->user()->id, $payload),
+            'snapshotToken' => $snapshots->store($request->session(), $payload),
         ]);
     }
 }

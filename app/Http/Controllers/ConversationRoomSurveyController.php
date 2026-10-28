@@ -7,6 +7,7 @@ use App\Models\ConversationRoomResponse;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyVersion;
 use App\Services\SurveyAlertService;
+use App\Services\SurveyAnalyticsService;
 use App\SurveyDraftManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class ConversationRoomSurveyController extends Controller
         StoreConversationRoomResponseRequest $request,
         SurveyDraftManager $surveys,
         SurveyAlertService $alerts,
+        SurveyAnalyticsService $analytics,
     ): RedirectResponse {
         $answers = $request->validated('answers');
         $version = SurveyVersion::query()
@@ -133,6 +135,8 @@ class ConversationRoomSurveyController extends Controller
 
             $response->choices()->createMany($multiSelectAnswers);
         });
+
+        $analytics->invalidateCache();
 
         defer(function () use ($alerts): void {
             try {

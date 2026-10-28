@@ -54,6 +54,8 @@ SESSION_SECURE_COOKIE=true
 SURVEY_PUBLIC_SESSION_DRIVER=cookie
 SURVEY_PUBLIC_SESSION_COOKIE=bec-survey-anonymous
 SURVEY_PUBLIC_CACHE_SECONDS=3600
+SURVEY_ANALYTICS_CACHE_FRESH_SECONDS=15
+SURVEY_ANALYTICS_CACHE_STALE_SECONDS=60
 ```
 
 The public survey uses an encrypted cookie session so anonymous visitors are not added to the server-side `sessions` table. Admin sessions can continue to use the configured `SESSION_DRIVER`. For a multi-server deployment, use a shared Redis or database cache and session store.

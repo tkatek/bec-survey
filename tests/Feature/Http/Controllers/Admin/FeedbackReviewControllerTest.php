@@ -8,6 +8,8 @@ use App\Models\SurveyAnswer;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyVersion;
 use App\Models\User;
+use App\Services\SurveyAnalyticsService;
+use App\Support\AnalyticsFilter;
 use Database\Seeders\FeedbackThemeSeeder;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -28,6 +30,10 @@ class FeedbackReviewControllerTest extends TestCase
     {
         $answer = $this->writtenAnswer('<script>alert("x")</script> More evening sessions, please.');
         $admin = User::factory()->administrator()->create();
+        $analytics = app(SurveyAnalyticsService::class);
+        $filter = AnalyticsFilter::fromValidated(['preset' => 'month']);
+
+        $this->assertSame([], $analytics->cachedBuild($filter)['feedbackThemes']);
 
         $this->actingAs($admin)
             ->put(route('admin.feedback.review', $answer), [
@@ -42,6 +48,11 @@ class FeedbackReviewControllerTest extends TestCase
             'feedback_theme_id' => FeedbackTheme::query()->where('key', 'scheduling')->value('id'),
             'reviewed_by' => $admin->id,
         ]);
+        $this->assertSame(
+            1,
+            collect($analytics->cachedBuild($filter)['feedbackThemes'])
+                ->firstWhere('key', 'scheduling')['count'],
+        );
     }
 
     public function test_feedback_is_escaped_and_non_administrators_cannot_change_tags(): void

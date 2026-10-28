@@ -12,14 +12,76 @@ use App\Support\AnalyticsFilter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SurveyAnalyticsService
 {
+    private const CACHE_REVISION_KEY = 'survey:analytics:revision';
+
     /** @return array<string, mixed> */
     public function build(AnalyticsFilter $filter): array
     {
         $version = SurveyVersion::query()->active()->sole();
+
+        return $this->buildForVersion($filter, $version);
+    }
+
+    /** @return array<string, mixed> */
+    public function cachedBuild(AnalyticsFilter $filter): array
+    {
+        $version = SurveyVersion::query()->active()->sole();
+        $freshSeconds = max(1, (int) config('survey.analytics.cache_fresh_seconds', 15));
+        $staleSeconds = max($freshSeconds + 1, (int) config('survey.analytics.cache_stale_seconds', 60));
+        $revision = (string) Cache::get(self::CACHE_REVISION_KEY, 'initial');
+        $cacheKey = $this->cacheKey($filter, $version);
+        $cached = Cache::flexible(
+            $cacheKey,
+            [$freshSeconds, $staleSeconds],
+            fn (): array => $this->cacheEnvelope($revision, $this->buildForVersion($filter, $version)),
+        );
+
+        if (! is_array($cached) || ($cached['revision'] ?? null) !== $revision || ! is_array($cached['payload'] ?? null)) {
+            $cached = $this->cacheEnvelope($revision, $this->buildForVersion($filter, $version));
+            Cache::put($cacheKey, $cached, $staleSeconds);
+        }
+
+        return $cached['payload'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{revision: string, payload: array<string, mixed>}
+     */
+    private function cacheEnvelope(string $revision, array $payload): array
+    {
+        return [
+            'revision' => $revision,
+            'payload' => $payload,
+        ];
+    }
+
+    public function invalidateCache(): void
+    {
+        Cache::forever(self::CACHE_REVISION_KEY, (string) Str::uuid());
+    }
+
+    private function cacheKey(AnalyticsFilter $filter, SurveyVersion $version): string
+    {
+        $identity = [
+            'version' => $version->id,
+            'query' => $filter->query(),
+            'periodStart' => $filter->localStart->toDateString(),
+            'timezone' => $filter->timezone,
+        ];
+
+        return 'survey:analytics:'.sha1(json_encode($identity, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array<string, mixed> */
+    private function buildForVersion(AnalyticsFilter $filter, SurveyVersion $version): array
+    {
         $responses = $this->responseScope($filter);
         $responseCount = (clone $responses)->count();
         $questions = SurveyQuestion::withTrashed()
