@@ -2,12 +2,12 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/laravel",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Anonymous Conversation Room feedback and analytics for Boston English Center.",
+    "keywords": ["laravel", "survey", "analytics"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "dompdf/dompdf": "3.1.6",
+        "dompdf/dompdf": "^3.1.6",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0"
     },

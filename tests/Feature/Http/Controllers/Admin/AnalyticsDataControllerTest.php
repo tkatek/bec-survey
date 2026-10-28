@@ -7,6 +7,7 @@ use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
 use App\Models\SurveyVersion;
 use App\Models\User;
+use App\SurveyDraftManager;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -132,12 +133,38 @@ class AnalyticsDataControllerTest extends TestCase
             ->assertJsonPath('analytics.dashboard.barriers.distributions.0.options.1.percentage', 50);
     }
 
-    /** @return array<string, int|string> */
+    public function test_answers_from_every_survey_version_are_combined_by_stable_ids(): void
+    {
+        $archivedQuestion = SurveyQuestion::query()->with(['options', 'version'])->where('key', 'attendance_frequency')->sole();
+        $archivedOption = $archivedQuestion->options->first();
+        $this->answeredResponse($archivedQuestion, $archivedOption, now()->subHour());
+        $admin = User::factory()->administrator()->create();
+        $surveys = app(SurveyDraftManager::class);
+        $surveys->draft($admin);
+        $surveys->publish($admin);
+        $activeQuestion = SurveyQuestion::query()
+            ->with('options')
+            ->where('stable_id', $archivedQuestion->stable_id)
+            ->whereHas('version', fn ($query) => $query->active())
+            ->sole();
+        $activeQuestion->load('version');
+        $activeOption = $activeQuestion->options->firstWhere('stable_id', $archivedOption->stable_id);
+        $this->answeredResponse($activeQuestion, $activeOption, now()->subMinutes(30));
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.analytics.show', $this->filterQuery() + ['version' => 999999]))
+            ->assertOk()
+            ->assertJsonPath('analytics.meta.scope', 'All completed student submissions')
+            ->assertJsonPath('analytics.overview.responses', 2)
+            ->assertJsonPath('analytics.dashboard.attendance.answered', 2)
+            ->assertJsonPath('analytics.dashboard.attendance.distributions.0.options.0.count', 2);
+    }
+
+    /** @return array<string, string> */
     private function filterQuery(string $preset = 'today'): array
     {
         return [
             'preset' => $preset,
-            'version' => SurveyVersion::query()->active()->value('number'),
         ];
     }
 
@@ -148,7 +175,7 @@ class AnalyticsDataControllerTest extends TestCase
         bool $isDemo = false,
     ): ConversationRoomResponse {
         $response = ConversationRoomResponse::factory()->create([
-            'survey_version' => SurveyVersion::query()->active()->value('number'),
+            'survey_version' => $question->version()->value('number'),
             'is_demo' => $isDemo,
             'created_at' => $createdAt,
         ]);

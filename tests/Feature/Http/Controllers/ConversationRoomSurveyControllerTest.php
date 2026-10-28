@@ -9,6 +9,7 @@ use App\Models\SurveyVersion;
 use Database\Seeders\SurveyQuestionSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -25,6 +26,47 @@ class ConversationRoomSurveyControllerTest extends TestCase
             ->assertViewIs('conversation-room.create')
             ->assertSee('Conversation Room Feedback Survey')
             ->assertSee('How often have you attended the Conversation Room in the past month?');
+    }
+
+    public function test_public_survey_view_is_cached_for_the_active_version(): void
+    {
+        config(['cache.stores.array.serialize' => true]);
+        Cache::purge('array');
+
+        $this->seed(SurveyQuestionSeeder::class);
+        $version = SurveyVersion::query()->active()->sole();
+        $question = SurveyQuestion::query()->where('key', 'attendance_frequency')->sole();
+        $originalPrompt = $question->prompt;
+
+        $this->get(route('conversation-room.create'))->assertSee($originalPrompt);
+
+        $this->assertTrue(Cache::has("survey:public-view:v2:{$version->id}:{$version->number}"));
+
+        $question->update(['prompt' => 'A prompt that is not published yet']);
+
+        $this->get(route('conversation-room.create'))
+            ->assertSee($originalPrompt)
+            ->assertDontSee('A prompt that is not published yet');
+    }
+
+    public function test_public_survey_uses_a_cookie_session_without_storing_visitor_metadata(): void
+    {
+        $this->seed(SurveyQuestionSeeder::class);
+        config([
+            'session.driver' => 'database',
+            'survey.public_session_driver' => 'cookie',
+        ]);
+
+        $this->get(route('conversation-room.create'))
+            ->assertOk()
+            ->assertCookie(config('survey.public_session_cookie'));
+
+        $this->assertDatabaseEmpty('sessions');
+        $this->assertSame('database', config('session.driver'));
+
+        $this->get(route('login'))->assertOk();
+
+        $this->assertDatabaseCount('sessions', 1);
     }
 
     public function test_conversation_room_path_redirects_to_the_student_survey(): void
@@ -123,6 +165,30 @@ class ConversationRoomSurveyControllerTest extends TestCase
             ->assertSessionHasErrors(['answers.'.$question->id]);
 
         $this->assertDatabaseEmpty('conversation_room_responses');
+    }
+
+    public function test_validation_failure_restores_answers_and_opens_the_invalid_question(): void
+    {
+        $this->seed(SurveyQuestionSeeder::class);
+        $payload = $this->validSurveyPayload();
+        $question = SurveyQuestion::query()->with('options')->where('key', 'encouragement_changes')->sole();
+        $payload['answers'][$question->id] = $question->options->take(4)->pluck('id')->all();
+
+        $this->from(route('conversation-room.create'))
+            ->post(route('conversation-room.store'), $payload)
+            ->assertRedirect(route('conversation-room.create'));
+
+        $expectedStep = SurveyQuestion::query()->active()->ordered()->get()->search(
+            fn (SurveyQuestion $surveyQuestion): bool => $surveyQuestion->is($question),
+        );
+
+        $this->get(route('conversation-room.create'))
+            ->assertOk()
+            ->assertViewHas('surveyConfiguration', function (array $configuration) use ($expectedStep, $payload): bool {
+                return $configuration['initialStep'] === $expectedStep
+                    && $configuration['initialAnswers'] === $payload['answers']
+                    && $configuration['initialError'] === 'You selected more answers than this question allows.';
+            });
     }
 
     public function test_unknown_answer_option_is_rejected(): void

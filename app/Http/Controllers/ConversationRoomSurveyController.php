@@ -9,8 +9,10 @@ use App\Models\SurveyVersion;
 use App\Services\SurveyAlertService;
 use App\SurveyDraftManager;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\View\View;
 
 class ConversationRoomSurveyController extends Controller
@@ -18,9 +20,31 @@ class ConversationRoomSurveyController extends Controller
     /**
      * Display the Conversation Room survey.
      */
-    public function create(SurveyDraftManager $surveys): View
+    public function create(Request $request, SurveyDraftManager $surveys): View
     {
-        return view('conversation-room.create', $surveys->surveyViewData($surveys->activeVersion()));
+        $viewData = $surveys->publicSurveyViewData();
+        $errors = $request->session()->get('errors');
+        $errorBag = $errors instanceof ViewErrorBag ? $errors->getBag('default') : null;
+        $firstErrorKey = $errorBag?->keys()[0] ?? null;
+        $initialStep = 0;
+
+        if (is_string($firstErrorKey) && preg_match('/^answers\.(\d+)/', $firstErrorKey, $matches) === 1) {
+            $questionIndex = $viewData['questions']->search(
+                fn (SurveyQuestion $question): bool => $question->id === (int) $matches[1],
+            );
+            $initialStep = is_int($questionIndex) ? $questionIndex : 0;
+        }
+
+        $viewData['surveyConfiguration'] = array_replace(
+            $viewData['surveyConfiguration'],
+            [
+                'initialAnswers' => $request->old('answers', []),
+                'initialError' => $errorBag?->first() ?? '',
+                'initialStep' => $initialStep,
+            ],
+        );
+
+        return view('conversation-room.create', $viewData);
     }
 
     /**

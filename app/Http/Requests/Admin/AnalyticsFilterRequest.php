@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\SurveyVersion;
 use App\Support\AnalyticsFilter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -31,13 +30,6 @@ class AnalyticsFilterRequest extends FormRequest
             'preset' => ['required', Rule::in(['today', 'last7', 'month', 'custom'])],
             'start' => ['nullable', 'required_if:preset,custom', 'date_format:Y-m-d'],
             'end' => ['nullable', 'required_if:preset,custom', 'date_format:Y-m-d'],
-            'version' => [
-                'required',
-                'integer',
-                Rule::exists('survey_versions', 'number')->where(
-                    fn ($query) => $query->where('status', '!=', SurveyVersion::STATUS_DRAFT),
-                ),
-            ],
             'tab' => ['nullable', Rule::in(['selected', 'feedback'])],
             'section' => ['nullable', 'string', 'max:120'],
             'question' => ['nullable', 'string', 'max:80'],
@@ -79,7 +71,7 @@ class AnalyticsFilterRequest extends FormRequest
 
     public function filter(): AnalyticsFilter
     {
-        /** @var array{preset: string, start?: string|null, end?: string|null, version: int} $validated */
+        /** @var array{preset: string, start?: string|null, end?: string|null} $validated */
         $validated = $this->validated();
 
         return AnalyticsFilter::fromValidated($validated);
@@ -87,11 +79,8 @@ class AnalyticsFilterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $activeVersion = SurveyVersion::query()->active()->value('number');
-
         $this->merge([
             'preset' => $this->input('preset', 'month'),
-            'version' => $this->input('version', $activeVersion),
         ]);
     }
 }

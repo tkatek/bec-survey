@@ -2,6 +2,9 @@
 
 return [
     'reporting_timezone' => env('SURVEY_REPORTING_TIMEZONE', 'Africa/Casablanca'),
+    'public_session_driver' => env('SURVEY_PUBLIC_SESSION_DRIVER', 'cookie'),
+    'public_session_cookie' => env('SURVEY_PUBLIC_SESSION_COOKIE', 'bec-survey-anonymous'),
+    'public_cache_seconds' => (int) env('SURVEY_PUBLIC_CACHE_SECONDS', 3600),
 
     'analytics' => [
         'maximum_custom_range_days' => 366,

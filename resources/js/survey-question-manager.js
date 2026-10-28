@@ -38,7 +38,7 @@ export const surveyQuestionManager = (initialState, configuration) => ({
     collapsedSections: {},
     addMenuOpen: false,
     openSectionMenu: null,
-    editorOpen: true,
+    editorOpen: false,
     editorMode: 'create',
     editorTab: 'basic',
     editor: null,
@@ -64,7 +64,7 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             this.collapsedSections = {};
         }
 
-        this.startNewQuestion(this.state.sections[0]?.stableId, true);
+        this.startNewQuestion(this.state.sections[0]?.stableId, true, false);
         this.beforeUnloadHandler = (event) => {
             if (!this.isDirty) {
                 return;
@@ -141,7 +141,7 @@ export const surveyQuestionManager = (initialState, configuration) => ({
         return this.formErrors[`options.${index}.${field}`]?.[0] ?? '';
     },
 
-    startNewQuestion(sectionStableId = null, force = false) {
+    startNewQuestion(sectionStableId = null, force = false, openEditor = true) {
         if (!force && !this.confirmDiscard()) {
             return;
         }
@@ -173,9 +173,12 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             options: [newOption(0), newOption(1)],
         };
         this.editorSnapshot = JSON.stringify(normalizedEditor(this.editor));
-        this.editorOpen = true;
+        this.editorOpen = openEditor;
         this.addMenuOpen = false;
-        this.$nextTick(() => this.$refs.questionText?.focus());
+
+        if (openEditor) {
+            this.$nextTick(() => this.$refs.questionText?.focus());
+        }
     },
 
     editQuestion(question, force = false) {
@@ -217,11 +220,7 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             return;
         }
 
-        if (window.innerWidth < 1280) {
-            this.editorOpen = false;
-        }
-
-        this.startNewQuestion(this.editor?.sectionStableId, true);
+        this.startNewQuestion(this.editor?.sectionStableId, true, false);
     },
 
     setQuestionType(type) {
@@ -406,6 +405,7 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             return;
         }
 
+        const isCreatingSection = this.sectionModal.mode === 'create';
         this.sectionModal.saving = true;
         this.sectionModal.errors = {};
         const url = this.sectionModal.mode === 'edit'
@@ -422,7 +422,13 @@ export const surveyQuestionManager = (initialState, configuration) => ({
             this.applyState(data.state);
             this.sectionModal = null;
             this.toast(data.message);
-            this.restoreFocus();
+
+            if (isCreatingSection && data.focusSectionStableId) {
+                this.selectedSection = data.focusSectionStableId;
+                this.startNewQuestion(data.focusSectionStableId, true);
+            } else {
+                this.restoreFocus();
+            }
         } catch (error) {
             this.toast(error.message, 'error');
         } finally {

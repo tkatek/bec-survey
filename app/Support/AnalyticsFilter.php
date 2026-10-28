@@ -14,12 +14,11 @@ class AnalyticsFilter
         public readonly CarbonImmutable $databaseEnd,
         public readonly CarbonImmutable $cutoff,
         public readonly string $timezone,
-        public readonly int $version,
         public readonly string $label,
     ) {}
 
     /**
-     * @param  array{preset: string, start?: string|null, end?: string|null, version: int}  $validated
+     * @param  array{preset: string, start?: string|null, end?: string|null}  $validated
      */
     public static function fromValidated(array $validated): self
     {
@@ -43,7 +42,6 @@ class AnalyticsFilter
             databaseEnd: ($end->equalTo($now) ? $end->addSecond() : $end)->setTimezone($databaseTimezone),
             cutoff: $now,
             timezone: $timezone,
-            version: (int) $validated['version'],
             label: $label,
         );
     }
@@ -53,10 +51,7 @@ class AnalyticsFilter
      */
     public function query(): array
     {
-        $query = [
-            'preset' => $this->preset,
-            'version' => $this->version,
-        ];
+        $query = ['preset' => $this->preset];
 
         if ($this->preset === 'custom') {
             $query['start'] = $this->localStart->toDateString();
@@ -77,7 +72,6 @@ class AnalyticsFilter
             'start' => $this->localStart->toDateString(),
             'end' => $this->displayEndDate(),
             'timezone' => $this->timezone,
-            'version' => $this->version,
             'cutoff' => $this->cutoff->toIso8601String(),
         ];
     }

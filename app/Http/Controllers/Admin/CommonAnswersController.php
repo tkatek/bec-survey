@@ -9,11 +9,9 @@ use App\Models\FeedbackTheme;
 use App\Models\SurveyAlert;
 use App\Models\SurveyAnswer;
 use App\Models\SurveyQuestion;
-use App\Models\SurveyVersion;
 use App\Services\AnalyticsSnapshotService;
 use App\Services\SurveyAlertService;
 use App\Services\SurveyAnalyticsService;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -30,55 +28,15 @@ class CommonAnswersController extends Controller
         $search = $request->string('search')->trim()->toString();
         $section = $request->string('section')->toString();
         $questionKey = $request->string('question')->toString();
-        $sort = $request->string('sort', 'original')->toString();
         $themeKey = $request->string('theme')->toString();
         $alert = $request->filled('alert')
             ? SurveyAlert::query()->find($request->integer('alert'))
             : null;
-        $selectedQuestions = collect($payload['questions'])
-            ->reject(fn (array $question): bool => $question['type'] === SurveyQuestion::TYPE_LONG_TEXT)
-            ->when($section !== '', fn (Collection $questions) => $questions->where('section', $section))
-            ->when($questionKey !== '', fn (Collection $questions) => $questions->where('key', $questionKey))
-            ->when($search !== '', function (Collection $questions) use ($search): Collection {
-                $needle = mb_strtolower($search);
-
-                return $questions->filter(function (array $question) use ($needle): bool {
-                    if (str_contains(mb_strtolower($question['prompt']), $needle)) {
-                        return true;
-                    }
-
-                    return collect($question['distributions'])
-                        ->flatMap(fn (array $distribution): array => $distribution['options'])
-                        ->contains(fn (array $option): bool => str_contains(mb_strtolower($option['label']), $needle));
-                });
-            })
-            ->map(function (array $question) use ($sort): array {
-                if ($sort === 'count') {
-                    $question['distributions'] = collect($question['distributions'])
-                        ->map(function (array $distribution): array {
-                            $distribution['options'] = collect($distribution['options'])
-                                ->sortByDesc('count')
-                                ->values()
-                                ->all();
-
-                            return $distribution;
-                        })
-                        ->all();
-                }
-
-                $leaders = collect($question['distributions'])
-                    ->flatMap(fn (array $distribution): array => $distribution['options']);
-                $maximum = (int) $leaders->max('count');
-                $question['leaders'] = $maximum > 0
-                    ? $leaders->where('count', $maximum)->values()->all()
-                    : [];
-
-                return $question;
-            })
-            ->values();
+        $feedbackStableIds = collect($payload['questions'])
+            ->where('type', SurveyQuestion::TYPE_LONG_TEXT)
+            ->pluck('stableId');
         $feedbackQuestionIds = SurveyQuestion::withTrashed()
-            ->whereHas('version', fn ($query) => $query->where('number', $filter->version))
-            ->where('key', 'one_change')
+            ->whereIn('stable_id', $feedbackStableIds)
             ->pluck('id');
         $feedbackQuery = SurveyAnswer::query()
             ->with(['response:id,created_at', 'themeAssignments.theme'])
@@ -123,8 +81,11 @@ class CommonAnswersController extends Controller
 
         return view('admin.common-answers', [
             'analytics' => $payload,
-            'selectedQuestions' => $selectedQuestions,
-            'sections' => collect($payload['questions'])->pluck('section')->unique()->values(),
+            'sections' => collect($payload['questions'])
+                ->reject(fn (array $question): bool => $question['type'] === SurveyQuestion::TYPE_LONG_TEXT)
+                ->pluck('section')
+                ->unique()
+                ->values(),
             'feedback' => $feedback,
             'themes' => $themes,
             'themeCounts' => $themeCounts,
@@ -133,16 +94,11 @@ class CommonAnswersController extends Controller
             'selectedSection' => $section,
             'selectedQuestion' => $questionKey,
             'search' => $search,
-            'sort' => $sort,
             'selectedTheme' => $themeKey,
             'selectedAlert' => $alert ? $alerts->serialize($alert) + [
                 'evidenceResponseIds' => $alert->evidence_response_ids ?? [],
             ] : null,
             'snapshotToken' => $snapshots->store($request->user()->id, $payload),
-            'versions' => SurveyVersion::query()
-                ->where('status', '!=', SurveyVersion::STATUS_DRAFT)
-                ->orderByDesc('number')
-                ->get(['number', 'status']),
             'alertData' => $alerts->toolbarData(),
         ]);
     }

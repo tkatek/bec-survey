@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Admin\AnalyticsFilterRequest;
-use App\Models\SurveyVersion;
 use App\Services\AnalyticsSnapshotService;
 use App\Services\SurveyAlertService;
 use App\Services\SurveyAnalyticsService;
@@ -24,10 +23,6 @@ class DashboardController extends Controller
         return view('dashboard', [
             'analytics' => $payload,
             'snapshotToken' => $snapshotToken,
-            'versions' => SurveyVersion::query()
-                ->where('status', '!=', SurveyVersion::STATUS_DRAFT)
-                ->orderByDesc('number')
-                ->get(['number', 'status']),
             'alertData' => $alerts->toolbarData(),
         ]);
     }

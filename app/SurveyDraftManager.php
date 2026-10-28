@@ -7,8 +7,10 @@ use App\Models\SurveyQuestionOption;
 use App\Models\SurveySection;
 use App\Models\SurveyVersion;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +25,101 @@ class SurveyDraftManager
     public function editingVersion(): SurveyVersion
     {
         return SurveyVersion::query()->draft()->first() ?? $this->activeVersion();
+    }
+
+    /**
+     * @return array{
+     *     questions: Collection<int, SurveyQuestion>,
+     *     sections: Collection<int, string>,
+     *     surveyConfiguration: array<string, mixed>,
+     *     surveyVersion: SurveyVersion,
+     *     isPreview: bool
+     * }
+     */
+    public function publicSurveyViewData(): array
+    {
+        $version = $this->activeVersion();
+        $cacheKey = "survey:public-view:v2:{$version->id}:{$version->number}";
+
+        $cachedViewData = Cache::remember(
+            $cacheKey,
+            max(1, (int) config('survey.public_cache_seconds', 3600)),
+            fn (): array => $this->cacheableSurveyViewData($this->surveyViewData($version)),
+        );
+
+        return $this->restoreCachedSurveyViewData($cachedViewData, $version);
+    }
+
+    /**
+     * Convert the public survey into an object-free payload that is safe for
+     * Laravel's restricted cache unserialization.
+     *
+     * @param  array{
+     *     questions: Collection<int, SurveyQuestion>,
+     *     sections: Collection<int, string>,
+     *     surveyConfiguration: array<string, mixed>,
+     *     surveyVersion: SurveyVersion,
+     *     isPreview: bool
+     * }  $viewData
+     * @return array{
+     *     questions: array<int, array{attributes: array<string, mixed>, options: array<int, array<string, mixed>>}>,
+     *     sections: array<int, string>,
+     *     surveyConfiguration: array<string, mixed>
+     * }
+     */
+    private function cacheableSurveyViewData(array $viewData): array
+    {
+        return [
+            'questions' => $viewData['questions']->map(fn (SurveyQuestion $question): array => [
+                'attributes' => $question->getAttributes(),
+                'options' => $question->options
+                    ->map(fn (SurveyQuestionOption $option): array => $option->getAttributes())
+                    ->all(),
+            ])->all(),
+            'sections' => $viewData['sections']->all(),
+            'surveyConfiguration' => $viewData['surveyConfiguration'],
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     questions: array<int, array{attributes: array<string, mixed>, options: array<int, array<string, mixed>>}>,
+     *     sections: array<int, string>,
+     *     surveyConfiguration: array<string, mixed>
+     * }  $cachedViewData
+     * @return array{
+     *     questions: Collection<int, SurveyQuestion>,
+     *     sections: Collection<int, string>,
+     *     surveyConfiguration: array<string, mixed>,
+     *     surveyVersion: SurveyVersion,
+     *     isPreview: bool
+     * }
+     */
+    private function restoreCachedSurveyViewData(array $cachedViewData, SurveyVersion $version): array
+    {
+        $questionPrototype = new SurveyQuestion;
+        $optionPrototype = new SurveyQuestionOption;
+        $questions = collect($cachedViewData['questions'])->map(
+            function (array $cachedQuestion) use ($optionPrototype, $questionPrototype): SurveyQuestion {
+                $question = $questionPrototype->newFromBuilder($cachedQuestion['attributes']);
+                $options = array_map(
+                    fn (array $attributes): SurveyQuestionOption => $optionPrototype->newFromBuilder($attributes),
+                    $cachedQuestion['options'],
+                );
+
+                $question->setRelation('options', new EloquentCollection($options));
+
+                return $question;
+            },
+        );
+
+        return [
+            'questions' => $questions,
+            'sections' => collect($cachedViewData['sections']),
+            'surveyConfiguration' => $cachedViewData['surveyConfiguration'],
+            'surveyVersion' => $version,
+            'isPreview' => false,
+        ];
     }
 
     /**

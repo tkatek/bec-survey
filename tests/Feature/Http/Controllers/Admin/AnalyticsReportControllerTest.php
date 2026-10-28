@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Http\Controllers\Admin;
 
-use App\Models\SurveyVersion;
 use App\Models\User;
 use Database\Seeders\FeedbackThemeSeeder;
 use Database\Seeders\SurveyQuestionSeeder;
@@ -24,7 +23,6 @@ class AnalyticsReportControllerTest extends TestCase
     {
         $query = [
             'preset' => 'month',
-            'version' => SurveyVersion::query()->active()->value('number'),
         ];
 
         $this->post(route('admin.reports.pdf'), $query)
@@ -48,7 +46,6 @@ class AnalyticsReportControllerTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->post(route('admin.reports.pdf'), [
                 'preset' => 'month',
-                'version' => SurveyVersion::query()->active()->value('number'),
             ])
             ->assertForbidden();
     }

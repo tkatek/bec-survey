@@ -6,11 +6,9 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="theme-color" content="#071326">
         <title>{{ config('app.name', 'Boston English Center') }}</title>
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen overflow-x-hidden bg-[#f4f7ff] font-['Plus_Jakarta_Sans'] text-[#071326] antialiased">
+    <body class="min-h-screen overflow-x-hidden bg-[#f4f7ff] font-sans text-[#071326] antialiased">
         @if (request()->routeIs('login'))
             {{ $slot }}
         @else

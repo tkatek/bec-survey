@@ -1,25 +1,10 @@
 import Alpine from 'alpinejs';
-import Chart from 'chart.js/auto';
 import { gsap } from 'gsap';
+import { createSurveyAnswers } from './survey-answers';
 import { surveyQuestionManager } from './survey-question-manager';
 import { buildVisibleSectionSteps, getSectionTrackDensity } from './survey-stepper';
 
-const createAnswers = (questions = []) => Object.fromEntries(
-    questions.map((question) => {
-        if (question.type === 'multiple_choice') {
-            return [String(question.id), []];
-        }
-
-        if (question.type === 'grouped_choice') {
-            return [
-                String(question.id),
-                Object.fromEntries(question.groups.map((group) => [group, ''])),
-            ];
-        }
-
-        return [String(question.id), ''];
-    }),
-);
+let Chart;
 
 const animateSurveyComplete = (container, prefersReducedMotion) => {
     if (!container) {
@@ -88,9 +73,9 @@ const animateSurveyComplete = (container, prefersReducedMotion) => {
 };
 
 Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
-    answers: createAnswers(configuration.questions),
-    currentStep: 0,
-    errorMessage: '',
+    answers: createSurveyAnswers(configuration.questions, configuration.initialAnswers),
+    currentStep: configuration.initialStep ?? 0,
+    errorMessage: configuration.initialError ?? '',
     isAnimating: false,
     isComplete: false,
     isPreview: configuration.isPreview ?? false,
@@ -446,6 +431,7 @@ Alpine.data('surveyThankYou', () => ({
 Alpine.data('dashboardAnalytics', (config) => ({
     analytics: config.analytics,
     snapshotToken: config.snapshotToken,
+    selectedQuestion: config.selectedQuestion ?? '',
     loading: false,
     exporting: false,
     errorMessage: '',
@@ -456,8 +442,8 @@ Alpine.data('dashboardAnalytics', (config) => ({
     abortController: null,
     charts: {},
     animated: { responses: 0, positive: 0 },
-    colors: ['#1457ff', '#2bcf9b', '#ffbb3d', '#9a63ed', '#ff5f78', '#1bb7d8'],
-    softColors: ['#e8f0ff', '#e7faf4', '#fff5df', '#f4ebff', '#ffecef', '#e7f8fc'],
+    colors: ['#245ceb', '#1daf89', '#f2aa34', '#815dd6', '#e65d78', '#209bb9'],
+    softColors: ['#e8f0ff', '#e4f8f1', '#fff3d8', '#f1eaff', '#ffe8ee', '#e5f7fb'],
     presets: [
         { value: 'today', label: 'Today' },
         { value: 'last7', label: 'Last 7 days' },
@@ -467,15 +453,17 @@ Alpine.data('dashboardAnalytics', (config) => ({
         preset: config.analytics.meta.filter.preset,
         start: config.analytics.meta.filter.start,
         end: config.analytics.meta.filter.end,
-        version: config.analytics.meta.version,
     },
     draftStart: config.analytics.meta.filter.start,
     draftEnd: config.analytics.meta.filter.end,
     today: new Date().toLocaleDateString('en-CA'),
 
-    init() {
+    async init() {
+        const { default: ChartModule } = await import('chart.js/auto');
+        Chart = ChartModule;
         this.animateCounters();
-        this.$nextTick(() => this.renderCharts());
+        await this.$nextTick();
+        this.renderCharts();
     },
 
     async refresh() {
@@ -486,12 +474,22 @@ Alpine.data('dashboardAnalytics', (config) => ({
 
         const query = new URLSearchParams({
             preset: this.filter.preset,
-            version: String(this.filter.version),
         });
 
         if (this.filter.preset === 'custom') {
             query.set('start', this.filter.start);
             query.set('end', this.filter.end);
+        }
+
+        Object.entries(config.contextQuery ?? {}).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && String(value) !== '') {
+                query.set(key, String(value));
+            }
+        });
+
+        if (config.navigateOnFilter) {
+            window.location.assign(`${config.historyUrl ?? config.dashboardUrl}?${query.toString()}`);
+            return;
         }
 
         try {
@@ -512,7 +510,13 @@ Alpine.data('dashboardAnalytics', (config) => ({
             this.filter.end = payload.analytics.meta.filter.end;
             this.draftStart = this.filter.start;
             this.draftEnd = this.filter.end;
-            window.history.replaceState({}, '', `${config.dashboardUrl}?${new URLSearchParams(payload.analytics.meta.query).toString()}`);
+            const historyQuery = new URLSearchParams(payload.analytics.meta.query);
+            Object.entries(config.contextQuery ?? {}).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && String(value) !== '') {
+                    historyQuery.set(key, String(value));
+                }
+            });
+            window.history.replaceState({}, '', `${config.historyUrl ?? config.dashboardUrl}?${historyQuery.toString()}`);
             this.animateCounters();
             await this.$nextTick();
             this.renderCharts();
@@ -587,6 +591,10 @@ Alpine.data('dashboardAnalytics', (config) => ({
     },
 
     renderCharts() {
+        if (! Chart) {
+            return;
+        }
+
         Object.values(this.charts).forEach((chart) => {
             chart?.stop();
             chart?.destroy();
@@ -595,7 +603,7 @@ Alpine.data('dashboardAnalytics', (config) => ({
         this.charts.responses = this.renderResponsesChart();
         this.charts.attendance = this.renderDoughnutChart();
         this.charts.barriers = this.renderBarChart('barriersChart', this.analytics.dashboard.barriers, true);
-        this.charts.preferredTime = this.renderBarChart('preferredTimeChart', this.analytics.dashboard.preferredTime);
+        this.charts.preferredTime = this.renderBarChart('preferredTimeChart', this.analytics.dashboard.preferredTime, false, 'Preferred time');
         this.charts.likelihood = this.renderBarChart('likelihoodChart', this.analytics.dashboard.likelihood);
     },
 
@@ -606,8 +614,9 @@ Alpine.data('dashboardAnalytics', (config) => ({
 
         const context = this.$refs.responsesChart.getContext('2d');
         const gradient = context.createLinearGradient(0, 0, 0, 280);
-        gradient.addColorStop(0, 'rgba(20, 87, 255, .28)');
-        gradient.addColorStop(1, 'rgba(20, 87, 255, 0)');
+        gradient.addColorStop(0, 'rgba(36, 92, 235, .24)');
+        gradient.addColorStop(0.72, 'rgba(75, 135, 255, .08)');
+        gradient.addColorStop(1, 'rgba(36, 92, 235, 0)');
 
         return new Chart(context, {
             type: 'line',
@@ -615,12 +624,12 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 labels: this.analytics.series.points.map((point) => point.label),
                 datasets: [{
                     data: this.analytics.series.points.map((point) => point.value),
-                    borderColor: '#1457ff',
+                    borderColor: '#245ceb',
                     backgroundColor: gradient,
                     fill: true,
                     borderWidth: 3,
                     pointBackgroundColor: '#fff',
-                    pointBorderColor: '#1457ff',
+                    pointBorderColor: '#245ceb',
                     pointBorderWidth: 2,
                     pointRadius: this.analytics.series.points.length > 35 ? 0 : 3,
                     pointHoverRadius: 6,
@@ -666,11 +675,11 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 ctx.save();
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#0b1739';
-                ctx.font = '800 24px Plus Jakarta Sans';
+                ctx.font = '800 24px system-ui';
                 ctx.fillText(String(distribution.answered), (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 - 2);
                 ctx.fillStyle = '#71809d';
-                ctx.font = '600 11px Plus Jakarta Sans';
-                ctx.fillText(distribution.answered === 1 ? 'answering Q1' : 'answering Q1', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 18);
+                ctx.font = '600 11px system-ui';
+                ctx.fillText(distribution.answered === 1 ? 'response' : 'responses', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 18);
                 ctx.restore();
             },
         };
@@ -695,9 +704,9 @@ Alpine.data('dashboardAnalytics', (config) => ({
         });
     },
 
-    renderBarChart(ref, question, horizontal = false) {
+    renderBarChart(ref, question, horizontal = false, group = null) {
         const canvas = this.$refs[ref];
-        const distribution = this.distribution(question);
+        const distribution = this.distribution(question, group);
 
         if (!canvas) {
             return null;
@@ -709,6 +718,30 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 .sort((left, right) => (right.count - left.count) || (left.originalOrder - right.originalOrder))
                 .slice(0, 6)
             : distribution.options;
+
+        const percentageLabels = {
+            id: `${ref}PercentageLabels`,
+            afterDatasetsDraw: (chart) => {
+                if (horizontal || distribution.answered <= 0) {
+                    return;
+                }
+
+                const metadata = chart.getDatasetMeta(0);
+                const context = chart.ctx;
+                context.save();
+                context.fillStyle = '#0b1739';
+                context.font = '800 11px system-ui';
+                context.textAlign = 'center';
+
+                metadata.data.forEach((bar, index) => {
+                    const percentage = Number(options[index]?.percentage ?? 0);
+                    const label = `${percentage.toFixed(percentage % 1 ? 1 : 0)}%`;
+                    context.fillText(label, bar.x, Math.max(chart.chartArea.top + 10, bar.y - 8));
+                });
+
+                context.restore();
+            },
+        };
 
         return new Chart(canvas, {
             type: 'bar',
@@ -724,6 +757,7 @@ Alpine.data('dashboardAnalytics', (config) => ({
             },
             options: this.chartOptions({
                 indexAxis: horizontal ? 'y' : 'x',
+                layout: { padding: horizontal ? 0 : { top: 18, left: 14, right: 14 } },
                 tooltip: (contextItem) => this.tooltipLabel(contextItem, distribution.answered),
                 scales: horizontal
                     ? {
@@ -731,10 +765,20 @@ Alpine.data('dashboardAnalytics', (config) => ({
                         y: { grid: { display: false }, ticks: { color: '#52658b', autoSkip: false } },
                     }
                     : {
-                        x: { grid: { display: false }, ticks: { color: '#71809d', maxRotation: 28, minRotation: 0 } },
-                        y: { beginAtZero: true, grid: { color: '#edf1f7' }, ticks: { precision: 0, color: '#71809d' } },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#71809d',
+                                font: { size: 10, weight: '600' },
+                                maxRotation: 0,
+                                minRotation: 0,
+                                callback: (_value, index) => this.compactAxisLabel(options[index]?.label ?? ''),
+                            },
+                        },
+                        y: { beginAtZero: true, grace: '18%', grid: { color: '#edf1f7' }, ticks: { precision: 0, color: '#71809d' } },
                     },
             }),
+            plugins: horizontal ? [] : [percentageLabels],
         });
     },
 
@@ -748,10 +792,17 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 legend: { display: false },
                 tooltip: {
                     displayColors: true,
-                    backgroundColor: '#0b1739',
+                    backgroundColor: 'rgba(255, 255, 255, .97)',
+                    borderColor: 'rgba(194, 211, 237, .92)',
+                    borderWidth: 1,
+                    titleColor: '#0b1739',
+                    bodyColor: '#52658b',
+                    cornerRadius: 12,
+                    caretSize: 6,
+                    boxPadding: 4,
                     padding: 12,
-                    titleFont: { family: 'Plus Jakarta Sans', size: 14, weight: '700' },
-                    bodyFont: { family: 'Plus Jakarta Sans', size: 14 },
+                    titleFont: { family: 'system-ui', size: 14, weight: '700' },
+                    bodyFont: { family: 'system-ui', size: 14 },
                     callbacks: {
                         title: (items) => this.wrapTooltipText(items[0]?.label ?? '', 30),
                         label: tooltip,
@@ -764,11 +815,11 @@ Alpine.data('dashboardAnalytics', (config) => ({
 
     tooltipLabel(contextItem, denominator) {
         const count = Number(contextItem.raw ?? 0);
-        const percentage = denominator > 0 ? ((count / denominator) * 100).toFixed(1) : '0.0';
+        const percentage = denominator > 0 ? `${((count / denominator) * 100).toFixed(1)}%` : 'N/A';
         const responseLabel = count === 1 ? 'response' : 'responses';
 
         return [
-            `${count} ${responseLabel} · ${percentage}%`,
+            `${count} ${responseLabel} · ${percentage}`,
             `Of ${denominator} answering this question`,
         ];
     },
@@ -796,6 +847,19 @@ Alpine.data('dashboardAnalytics', (config) => ({
         return lines;
     },
 
+    compactAxisLabel(value) {
+        const label = String(value);
+        const normalized = label.toLowerCase();
+
+        if (normalized.startsWith('morning')) return ['Morning', '6 AM–12 PM'];
+        if (normalized.startsWith('afternoon')) return ['Afternoon', '12–5 PM'];
+        if (normalized.startsWith('evening')) return ['Evening', '5–9 PM'];
+        if (normalized.startsWith('late evening')) return ['Late evening', 'After 9 PM'];
+        if (normalized.includes('availability changes')) return ['Availability', 'changes'];
+
+        return this.wrapTooltipText(label, 14).slice(0, 2);
+    },
+
     distribution(question, group = null) {
         const distributions = question?.distributions ?? [];
         return distributions.find((item) => item.group === group)
@@ -805,6 +869,10 @@ Alpine.data('dashboardAnalytics', (config) => ({
 
     rankedOptions(question) {
         return [...this.distribution(question).options].sort((left, right) => right.count - left.count);
+    },
+
+    questionByKey(key = this.selectedQuestion) {
+        return this.analytics.questions.find((question) => question.key === key) ?? null;
     },
 
     formatNumber(value) {

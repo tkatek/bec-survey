@@ -7,7 +7,7 @@
             'tones' => $toneChoices,
         ]))"
         @keydown.escape.window="closeOnEscape"
-        class="question-admin min-h-screen bg-[#f4f8ff]"
+        class="question-admin admin-secondary-page min-h-screen"
     >
         @include('conversation-room.partials.admin-icon-sprite')
 
@@ -24,7 +24,7 @@
                         <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                         <span x-text="state.version.hasDraft ? `Version ${state.version.activeNumber} active · Draft ${state.version.number}` : `Survey is active · Version ${state.version.activeNumber}`"></span>
                     </span>
-                    <a :href="routes.fullPreview" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-[#cfdcf0] bg-white px-4 py-2.5 text-xs font-extrabold text-[#1357e8] shadow-sm transition hover:border-[#1357e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
+                    <a :href="routes.fullPreview" target="_blank" rel="noopener" class="admin-control inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-extrabold text-[#1357e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
                         Preview survey
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
                     </a>
@@ -36,7 +36,7 @@
             </header>
 
             <div class="mt-6 flex flex-col gap-3 2xl:flex-row 2xl:items-stretch 2xl:justify-between">
-                <div class="survey-tabs-scroll min-w-0 overflow-x-auto rounded-2xl border border-[#e0e8f4] bg-white p-1 shadow-[0_8px_24px_rgba(22,65,122,0.05)]">
+                <div class="admin-glass-panel survey-tabs-scroll min-w-0 overflow-x-auto rounded-2xl p-1">
                     <div class="flex min-w-max items-stretch">
                         <button type="button" @click="selectedSection = 'all'" :class="selectedSection === 'all' ? 'bg-[#1357e8] text-white shadow-md' : 'text-[#10214b] hover:bg-[#f6f9ff]'" class="rounded-xl px-5 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
                             <span class="block text-xs font-extrabold">All Questions (<span x-text="state.totalQuestions"></span>)</span>
@@ -51,19 +51,19 @@
                 </div>
 
                 <div class="relative shrink-0" @click.outside="addMenuOpen = false">
-                    <button type="button" @click="addMenuOpen = !addMenuOpen" :aria-expanded="addMenuOpen.toString()" class="flex h-full min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#1357e8] px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(19,87,232,0.22)] transition hover:bg-[#0b43be] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8] focus-visible:ring-offset-2 2xl:w-48">
+                    <button type="button" @click="addMenuOpen = !addMenuOpen" :aria-expanded="addMenuOpen.toString()" class="admin-primary-action flex h-full min-h-12 w-full items-center justify-center gap-3 rounded-xl px-6 py-3 text-sm font-extrabold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8] focus-visible:ring-offset-2 2xl:w-48">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
-                        Add Question
+                        Add to survey
                         <svg class="ml-auto h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 10 5 5 5-5" /></svg>
                     </button>
-                    <div x-show="addMenuOpen" x-cloak x-transition.origin.top.right class="absolute right-0 z-30 mt-2 w-52 rounded-2xl border border-[#dce5f2] bg-white p-2 shadow-[0_18px_45px_rgba(22,52,99,0.16)]">
+                    <div x-show="addMenuOpen" x-cloak x-transition.origin.top.right class="admin-popover absolute right-0 z-30 mt-2 w-52 rounded-2xl border p-2">
                         <button type="button" @click="startNewQuestion()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#10214b] hover:bg-[#edf4ff] hover:text-[#1357e8]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>Add Question</button>
                         <button type="button" @click="openSectionEditor()" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#10214b] hover:bg-[#edf4ff] hover:text-[#1357e8]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10" /></svg>Add Section</button>
                     </div>
                 </div>
             </div>
 
-            <div class="question-admin-workspace mt-4 grid min-w-0 gap-4">
+            <div :class="editorOpen ? 'question-admin-workspace--editor-open' : ''" class="question-admin-workspace mt-4 grid min-w-0 gap-4">
                 <main class="min-w-0 space-y-3" aria-label="Survey sections and questions">
                     <template x-for="(section, sectionIndex) in filteredSections" :key="section.stableId">
                         <article data-section-card :data-section-stable-id="section.stableId" :class="sectionDropClass(section)" class="question-section-card min-w-0 rounded-2xl border border-[#e0e8f3] bg-white shadow-[0_10px_28px_rgba(25,67,124,0.055)] transition">
@@ -140,11 +140,11 @@
                     </template>
                 </main>
 
-                <aside :class="editorOpen ? 'question-editor-open' : ''" class="question-editor-shell" aria-label="Question editor">
-                    <div class="question-editor-card flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e0e8f3] bg-white shadow-[0_16px_42px_rgba(25,67,124,0.08)]">
+                <aside x-show="editorOpen" x-cloak :class="editorOpen ? 'question-editor-open' : ''" class="question-editor-shell" aria-label="Question editor">
+                    <div class="question-editor-card flex min-h-0 flex-col overflow-hidden rounded-2xl border">
                         <div class="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
                             <h2 class="text-lg font-extrabold tracking-[-0.03em] text-[#071326]" x-text="editorTitle"></h2>
-                            <button type="button" @click="editorOpen = false" aria-label="Close question editor" class="grid h-9 w-9 place-items-center rounded-lg text-[#607296] hover:bg-[#edf4ff] xl:hidden"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+                            <button type="button" @click="cancelEditor" aria-label="Close question editor" class="grid h-9 w-9 place-items-center rounded-lg text-[#607296] transition hover:bg-[#edf4ff] hover:text-[#1357e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
                         </div>
 
                         <div class="mx-5 grid grid-cols-2 rounded-xl bg-[#f1f5fb] p-1">

@@ -19,10 +19,7 @@ class SurveyAnalyticsService
     /** @return array<string, mixed> */
     public function build(AnalyticsFilter $filter): array
     {
-        $version = SurveyVersion::query()
-            ->where('number', $filter->version)
-            ->where('status', '!=', SurveyVersion::STATUS_DRAFT)
-            ->sole();
+        $version = SurveyVersion::query()->active()->sole();
         $responses = $this->responseScope($filter);
         $responseCount = (clone $responses)->count();
         $questions = SurveyQuestion::withTrashed()
@@ -33,32 +30,32 @@ class SurveyAnalyticsService
             ])
             ->ordered()
             ->get();
-        $questionIds = $questions->modelKeys();
-        $answerCounts = $questionIds === []
+        $questionStableIds = $questions->pluck('stable_id')->filter()->values()->all();
+        $answerCounts = $questionStableIds === []
             ? collect()
             : SurveyAnswer::query()
+                ->join('survey_questions as answered_questions', 'answered_questions.id', '=', 'survey_answers.survey_question_id')
+                ->join('survey_question_options as answered_options', 'answered_options.id', '=', 'survey_answers.survey_question_option_id')
                 ->select([
-                    'survey_question_id',
-                    'survey_question_option_id',
-                    'group_name',
-                    DB::raw('COUNT(DISTINCT conversation_room_response_id) as aggregate'),
+                    'answered_questions.stable_id as question_stable_id',
+                    'answered_options.stable_id as option_stable_id',
+                    DB::raw('COUNT(DISTINCT survey_answers.conversation_room_response_id) as aggregate'),
                 ])
-                ->whereIn('survey_question_id', $questionIds)
-                ->whereIn('conversation_room_response_id', (clone $responses)->select('conversation_room_responses.id'))
-                ->whereNotNull('survey_question_option_id')
-                ->groupBy('survey_question_id', 'survey_question_option_id', 'group_name')
+                ->whereIn('answered_questions.stable_id', $questionStableIds)
+                ->whereIn('survey_answers.conversation_room_response_id', (clone $responses)->select('conversation_room_responses.id'))
+                ->groupBy('answered_questions.stable_id', 'answered_options.stable_id')
                 ->get();
-        $answeredCounts = $questionIds === []
+        $answeredCounts = $questionStableIds === []
             ? collect()
             : SurveyAnswer::query()
+                ->join('survey_questions as answered_questions', 'answered_questions.id', '=', 'survey_answers.survey_question_id')
                 ->select([
-                    'survey_question_id',
-                    'group_name',
-                    DB::raw('COUNT(DISTINCT conversation_room_response_id) as aggregate'),
+                    'answered_questions.stable_id as question_stable_id',
+                    DB::raw('COUNT(DISTINCT survey_answers.conversation_room_response_id) as aggregate'),
                 ])
-                ->whereIn('survey_question_id', $questionIds)
-                ->whereIn('conversation_room_response_id', (clone $responses)->select('conversation_room_responses.id'))
-                ->groupBy('survey_question_id', 'group_name')
+                ->whereIn('answered_questions.stable_id', $questionStableIds)
+                ->whereIn('survey_answers.conversation_room_response_id', (clone $responses)->select('conversation_room_responses.id'))
+                ->groupBy('answered_questions.stable_id')
                 ->get();
         $questionsPayload = $questions
             ->map(fn (SurveyQuestion $question): array => $this->questionPayload(
@@ -70,22 +67,25 @@ class SurveyAnalyticsService
             ->values();
         $questionsByKey = $questionsPayload->keyBy('key');
         $series = $this->responseSeries($filter, $responses);
+        $writtenQuestionIds = $this->matchingQuestionIds(
+            $questions->where('type', SurveyQuestion::TYPE_LONG_TEXT),
+        );
 
         return [
             'meta' => [
                 'generatedAt' => now($filter->timezone)->toIso8601String(),
                 'dataAsOf' => $filter->cutoff->toIso8601String(),
                 'timezone' => $filter->timezone,
-                'version' => $version->number,
-                'versionStatus' => $version->status,
+                'scope' => 'All completed student submissions',
                 'filter' => $filter->summary(),
                 'query' => $filter->query(),
-                'exclusions' => 'Demo records and records without normalized answers are excluded.',
+                'exclusions' => 'Demo records and records without normalized answers are excluded. All completed student submissions in the selected period are included.',
             ],
             'overview' => [
                 'responses' => $responseCount,
                 'positiveActivity' => $this->positiveActivityKpi($questionsByKey->get('activity_usefulness')),
                 'mainBarrier' => $this->leaderKpi($questionsByKey->get('attendance_reasons')),
+                'writtenFeedback' => $this->writtenFeedbackKpi($filter, $writtenQuestionIds),
                 'preferredTime' => $this->leaderKpi(
                     $questionsByKey->get('preferred_session_time'),
                     'Preferred time',
@@ -100,9 +100,10 @@ class SurveyAnalyticsService
                 'preferredTime' => $questionsByKey->get('preferred_session_time'),
                 'likelihood' => $questionsByKey->get('attendance_likelihood'),
             ],
-            'feedback' => $this->recentFeedback($filter, $version),
-            'reviewedFeedback' => $this->reviewedFeedback($filter, $version),
-            'feedbackThemes' => $this->feedbackThemeSummary($filter, $version),
+            'feedback' => $this->recentFeedback($filter, $writtenQuestionIds),
+            'reviewedFeedback' => $this->reviewedFeedback($filter, $writtenQuestionIds),
+            'feedbackThemes' => $this->feedbackThemeSummary($filter, $writtenQuestionIds),
+            'insights' => $this->insights($questionsByKey, $responseCount),
         ];
     }
 
@@ -110,7 +111,6 @@ class SurveyAnalyticsService
     public function responseScope(AnalyticsFilter $filter): Builder
     {
         return ConversationRoomResponse::query()
-            ->where('survey_version', $filter->version)
             ->where('is_demo', false)
             ->where('created_at', '>=', $filter->databaseStart)
             ->where('created_at', '<', $filter->databaseEnd)
@@ -128,29 +128,29 @@ class SurveyAnalyticsService
         Collection $answerCounts,
         Collection $answeredCounts,
     ): array {
-        $questionCounts = $answerCounts->where('survey_question_id', $question->id);
-        $questionAnsweredRows = $answeredCounts->where('survey_question_id', $question->id);
-        $answered = (int) $questionAnsweredRows->sum('aggregate');
-
-        if ($question->type === SurveyQuestion::TYPE_GROUPED_CHOICE) {
-            $answered = (int) $questionAnsweredRows->max('aggregate');
-        }
+        $questionCounts = $answerCounts->where('question_stable_id', $question->stable_id);
+        $answered = (int) ($answeredCounts->firstWhere('question_stable_id', $question->stable_id)?->aggregate ?? 0);
 
         $groupNames = $question->options->pluck('group_name')->filter()->unique()->values();
         $distributions = $question->type === SurveyQuestion::TYPE_LONG_TEXT
             ? collect()
             : ($groupNames->isEmpty()
-            ? collect([$this->distribution($question->options, $questionCounts, $answered, null)])
-            : $groupNames->map(function (string $groupName) use ($question, $questionCounts, $questionAnsweredRows): array {
-                $groupAnswered = (int) ($questionAnsweredRows->firstWhere('group_name', $groupName)?->aggregate ?? 0);
+                ? collect([$this->distribution($question->options, $questionCounts, $answered, null)])
+                : $groupNames->map(function (string $groupName) use ($question, $questionCounts): array {
+                    $options = $question->options->where('group_name', $groupName);
+                    $groupCounts = $questionCounts->whereIn('option_stable_id', $options->pluck('stable_id'));
 
-                return $this->distribution(
-                    $question->options->where('group_name', $groupName),
-                    $questionCounts->where('group_name', $groupName),
-                    $groupAnswered,
-                    $groupName,
-                );
-            }));
+                    return $this->distribution(
+                        $options,
+                        $groupCounts,
+                        (int) $groupCounts->sum('aggregate'),
+                        $groupName,
+                    );
+                }));
+
+        if ($question->type === SurveyQuestion::TYPE_GROUPED_CHOICE) {
+            $answered = (int) $distributions->max('answered');
+        }
 
         return [
             'id' => $question->id,
@@ -181,7 +181,7 @@ class SurveyAnalyticsService
      */
     private function distribution(Collection $options, Collection $counts, int $answered, ?string $groupName): array
     {
-        $countByOption = $counts->keyBy('survey_question_option_id');
+        $countByOption = $counts->keyBy('option_stable_id');
 
         return [
             'group' => $groupName,
@@ -189,7 +189,7 @@ class SurveyAnalyticsService
             'options' => $options
                 ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
                 ->map(function (SurveyQuestionOption $option) use ($countByOption, $answered): array {
-                    $count = (int) ($countByOption->get($option->id)?->aggregate ?? 0);
+                    $count = (int) ($countByOption->get($option->stable_id)?->aggregate ?? 0);
 
                     return [
                         'id' => $option->id,
@@ -221,6 +221,30 @@ class SurveyAnalyticsService
             'denominator' => $answered,
             'percentage' => $answered > 0 ? round(($positiveCount / $answered) * 100, 1) : null,
             'definition' => 'Very useful + Somewhat useful, divided by all valid activity-usefulness answers.',
+        ];
+    }
+
+    /**
+     * @param  Collection<int, int>  $questionIds
+     * @return array{count: int, questionCount: int}
+     */
+    private function writtenFeedbackKpi(AnalyticsFilter $filter, Collection $questionIds): array
+    {
+        if ($questionIds->isEmpty()) {
+            return ['count' => 0, 'questionCount' => 0];
+        }
+
+        $count = SurveyAnswer::query()
+            ->whereIn('survey_question_id', $questionIds)
+            ->whereNotNull('answer_value')
+            ->where('answer_value', '!=', '')
+            ->whereIn('conversation_room_response_id', $this->responseScope($filter)->select('conversation_room_responses.id'))
+            ->distinct('conversation_room_response_id')
+            ->count('conversation_room_response_id');
+
+        return [
+            'count' => $count,
+            'questionCount' => $questionIds->count(),
         ];
     }
 
@@ -257,6 +281,87 @@ class SurveyAnalyticsService
         return $groupName === null
             ? ($distributions->first() ?? ['answered' => 0, 'options' => []])
             : ($distributions->firstWhere('group', $groupName) ?? ['answered' => 0, 'options' => []]);
+    }
+
+    /**
+     * @param  Collection<string, array<string, mixed>>  $questionsByKey
+     * @return array<int, string>
+     */
+    private function insights(Collection $questionsByKey, int $responseCount): array
+    {
+        if ($responseCount === 0) {
+            return [];
+        }
+
+        $attendance = $this->leaderKpi($questionsByKey->get('attendance_frequency'));
+        $barrier = $this->leaderKpi($questionsByKey->get('attendance_reasons'));
+        $format = $this->leaderKpi($questionsByKey->get('session_format'));
+        $preferredTime = $this->leaderKpi(
+            $questionsByKey->get('preferred_session_time'),
+            'Preferred time',
+        );
+        $positiveActivity = $this->positiveActivityKpi($questionsByKey->get('activity_usefulness'));
+
+        return collect([
+            $this->leaderInsight(
+                $attendance,
+                fn (string $label, string $percentage, int $count): string => "{$percentage} of respondents answering attendance frequency selected {$label} ({$count} responses).",
+                fn (int $leaders, string $percentage, int $count): string => "{$leaders} attendance-frequency answers are tied at {$percentage} ({$count} responses each).",
+            ),
+            $this->leaderInsight(
+                $barrier,
+                fn (string $label, string $percentage, int $count): string => "{$label} is the leading attendance barrier ({$percentage}, {$count} responses).",
+                fn (int $leaders, string $percentage, int $count): string => "{$leaders} attendance barriers are tied for the lead at {$percentage} ({$count} responses each).",
+            ),
+            $this->leaderInsight(
+                $format,
+                fn (string $label, string $percentage, int $count): string => "{$label} is the most preferred session format ({$percentage}, {$count} responses).",
+                fn (int $leaders, string $percentage, int $count): string => "{$leaders} session formats are tied for first at {$percentage} ({$count} responses each).",
+            ),
+            $this->leaderInsight(
+                $preferredTime,
+                fn (string $label, string $percentage, int $count): string => "{$label} is the most selected time to attend ({$percentage}, {$count} responses).",
+                fn (int $leaders, string $percentage, int $count): string => "{$leaders} session times are tied for first at {$percentage} ({$count} responses each).",
+            ),
+            $positiveActivity['denominator'] > 0
+                ? $this->percentageLabel($positiveActivity['percentage'])." of respondents answering activity usefulness found the activities useful ({$positiveActivity['count']} of {$positiveActivity['denominator']})."
+                : null,
+        ])->filter()->take(5)->values()->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $leader
+     * @param  callable(string, string, int): string  $message
+     * @param  callable(int, string, int): string  $tieMessage
+     */
+    private function leaderInsight(array $leader, callable $message, callable $tieMessage): ?string
+    {
+        if ($leader['denominator'] === 0 || $leader['percentage'] === null || $leader['count'] === 0) {
+            return null;
+        }
+
+        if ($leader['isTie']) {
+            return $tieMessage(
+                count($leader['leaders']),
+                $this->percentageLabel($leader['percentage']),
+                (int) $leader['count'],
+            );
+        }
+
+        return $message(
+            (string) $leader['label'],
+            $this->percentageLabel($leader['percentage']),
+            (int) $leader['count'],
+        );
+    }
+
+    private function percentageLabel(float|int|null $percentage): string
+    {
+        if ($percentage === null) {
+            return 'N/A';
+        }
+
+        return rtrim(rtrim(number_format($percentage, 1), '0'), '.').'%';
     }
 
     /**
@@ -299,13 +404,8 @@ class SurveyAnalyticsService
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function recentFeedback(AnalyticsFilter $filter, SurveyVersion $version): array
+    private function recentFeedback(AnalyticsFilter $filter, Collection $questionIds): array
     {
-        $questionIds = SurveyQuestion::withTrashed()
-            ->where('survey_version_id', $version->id)
-            ->where('key', 'one_change')
-            ->pluck('id');
-
         if ($questionIds->isEmpty()) {
             return [];
         }
@@ -335,13 +435,8 @@ class SurveyAnalyticsService
     }
 
     /** @return array<int, array<string, mixed>> */
-    private function reviewedFeedback(AnalyticsFilter $filter, SurveyVersion $version): array
+    private function reviewedFeedback(AnalyticsFilter $filter, Collection $questionIds): array
     {
-        $questionIds = SurveyQuestion::withTrashed()
-            ->where('survey_version_id', $version->id)
-            ->where('key', 'one_change')
-            ->pluck('id');
-
         return SurveyAnswer::query()
             ->with(['response:id,created_at', 'themeAssignments.theme'])
             ->whereIn('survey_question_id', $questionIds)
@@ -362,13 +457,8 @@ class SurveyAnalyticsService
     }
 
     /** @return array<int, array{key: string, label: string, count: int}> */
-    private function feedbackThemeSummary(AnalyticsFilter $filter, SurveyVersion $version): array
+    private function feedbackThemeSummary(AnalyticsFilter $filter, Collection $questionIds): array
     {
-        $questionIds = SurveyQuestion::withTrashed()
-            ->where('survey_version_id', $version->id)
-            ->where('key', 'one_change')
-            ->pluck('id');
-
         return FeedbackThemeAssignment::query()
             ->join('feedback_themes', 'feedback_themes.id', '=', 'feedback_theme_assignments.feedback_theme_id')
             ->join('survey_answers', 'survey_answers.id', '=', 'feedback_theme_assignments.survey_answer_id')
@@ -389,6 +479,23 @@ class SurveyAnalyticsService
                 'count' => (int) $row->aggregate,
             ])
             ->all();
+    }
+
+    /**
+     * @param  Collection<int, SurveyQuestion>  $questions
+     * @return Collection<int, int>
+     */
+    private function matchingQuestionIds(Collection $questions): Collection
+    {
+        $stableIds = $questions->pluck('stable_id')->filter()->values();
+
+        if ($stableIds->isEmpty()) {
+            return collect();
+        }
+
+        return SurveyQuestion::withTrashed()
+            ->whereIn('stable_id', $stableIds)
+            ->pluck('id');
     }
 
     private function denominatorDescription(SurveyQuestion $question, int $answered): string

@@ -73,7 +73,7 @@
                 <td><div class="label">Reporting timezone</div><div class="value">{{ $analytics['meta']['timezone'] }}</div></td>
             </tr>
             <tr>
-                <td><div class="label">Survey version</div><div class="value">Version {{ $analytics['meta']['version'] }} ({{ ucfirst($analytics['meta']['versionStatus']) }})</div></td>
+                <td><div class="label">Response scope</div><div class="value">{{ $analytics['meta']['scope'] }}</div></td>
                 <td><div class="label">Data as of</div><div class="value">{{ \Carbon\CarbonImmutable::parse($analytics['meta']['dataAsOf'])->format('M j, Y g:i A') }}</div></td>
             </tr>
         </table>

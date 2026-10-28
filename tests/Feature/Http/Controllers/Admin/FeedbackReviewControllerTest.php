@@ -49,7 +49,6 @@ class FeedbackReviewControllerTest extends TestCase
         $answer = $this->writtenAnswer('<img src=x onerror=alert(1)>');
         $query = [
             'preset' => 'month',
-            'version' => SurveyVersion::query()->active()->value('number'),
             'tab' => 'feedback',
         ];
 

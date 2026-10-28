@@ -47,6 +47,7 @@ class DashboardControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Conversation Room Feedback Survey')
             ->assertSee('Responses Over Time')
+            ->assertDontSee('id="survey-version"', false)
             ->assertViewHas('analytics', fn (array $analytics): bool => $analytics['overview']['responses'] === 1
                 && (float) $analytics['overview']['positiveActivity']['percentage'] === 100.0);
     }
