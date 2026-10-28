@@ -20,6 +20,12 @@ return [
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
+    'administrator' => [
+        'name' => env('ADMIN_NAME', 'Survey Administrator'),
+        'email' => env('ADMIN_EMAIL', 'admin@bostonenglishcenter.com'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Authentication Guards
