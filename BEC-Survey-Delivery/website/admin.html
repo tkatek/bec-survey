@@ -96,7 +96,7 @@
         .mobile-header { display: none; }
         .overlay { display: none; }
         .main { min-width: 0; min-height: 100vh; padding-left: 17rem; }
-        .content { width: 100%; max-width: 1600px; margin: 0 auto; padding: 1.75rem 2rem 3rem; }
+        .content { width: 100%; max-width: 1600px; margin: 0 auto; padding: 1.75rem 2rem; }
         .admin-page { display: none; }
         .admin-page.is-active { display: block; animation: page-enter .24s ease-out both; }
         .page-header { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
@@ -148,7 +148,7 @@
         .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
         .panel h2 { margin: 0; color: var(--ink); font-size: 1.125rem; font-weight: 900; line-height: 1.75rem; letter-spacing: -.02em; text-wrap: balance; }
         .panel-subtitle { margin: .25rem 0 0; color: var(--muted); font-size: .875rem; line-height: 1.25rem; }
-        .detail-link { flex: 0 0 auto; border: 1px solid rgba(255,255,255,.72); border-radius: .7rem; padding: .55rem .75rem; background: rgba(255,255,255,.62); color: var(--blue); font-size: .75rem; font-weight: 900; }
+        .detail-link { flex: 0 0 auto; border: 1px solid rgba(255,255,255,.72); border-radius: .7rem; padding: .5rem .75rem; background: rgba(255,255,255,.62); color: var(--blue); font-size: .75rem; font-weight: 900; line-height: 1rem; }
         .detail-link:hover { border-color: #bdd3fb; background: rgba(255,255,255,.92); }
         .count-pill { flex: 0 0 auto; border-radius: 999px; padding: .4rem .65rem; background: #edf3ff; color: var(--blue); font-size: .7rem; font-weight: 900; }
         .line-chart { width: 100%; height: 18rem; margin-top: 1rem; }
@@ -170,21 +170,29 @@
         .legend-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: .5rem; color: #52658b; font-size: .72rem; }
         .legend-dot { width: .58rem; height: .58rem; border-radius: 50%; background: var(--dot); }
         .legend-row strong { color: var(--ink); font-variant-numeric: tabular-nums; }
-        .empty-bars { display: grid; gap: .9rem; margin-top: 1.3rem; }
-        .empty-bar-row { display: grid; grid-template-columns: minmax(10rem,1fr) minmax(9rem,1.4fr) 1.8rem; align-items: center; gap: .75rem; }
+        .empty-bars { position: relative; display: grid; height: 19rem; gap: .5rem; margin-top: 1rem; padding-bottom: 1.5rem; }
+        .empty-bars::before { content: ""; position: absolute; top: 0; bottom: 1.5rem; left: calc(38% + .75rem); border-left: 1px solid #dce5f2; }
+        .empty-bars::after { content: ""; position: absolute; right: 0; bottom: 1.5rem; left: calc(38% + .75rem); border-bottom: 1px solid #dce5f2; }
+        .empty-bar-row { display: grid; grid-template-columns: 38% minmax(0,1fr); align-items: center; gap: .75rem; }
         .empty-bar-row span { color: #52658b; font-size: .7rem; font-weight: 700; }
-        .bar-track { height: .55rem; overflow: hidden; border-radius: 999px; background: #edf2f8; }
-        .empty-bar-row b { color: var(--ink); font-size: .7rem; text-align: right; font-variant-numeric: tabular-nums; }
-        .rank-list { display: grid; gap: .65rem; margin-top: 1rem; }
-        .rank-row { display: grid; grid-template-columns: 2.1rem 3.2rem minmax(0,1fr) 1.5rem; align-items: center; gap: .6rem; border: 1px solid #e5ebf5; border-radius: .75rem; padding: .65rem; background: rgba(255,255,255,.52); }
-        .rank-number { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: .65rem; background: var(--soft); color: var(--rank); font-size: .7rem; font-weight: 900; }
-        .rank-percent { border-radius: 999px; padding: .25rem .4rem; background: #f5f8ff; color: var(--blue); font-size: .65rem; font-weight: 900; text-align: center; }
-        .rank-label { min-width: 0; color: #334155; font-size: .72rem; font-weight: 800; overflow-wrap: anywhere; }
-        .rank-count { color: var(--ink); font-size: .72rem; font-weight: 900; text-align: right; }
-        .axis-chart { position: relative; height: 16rem; margin-top: 1rem; border-bottom: 1px solid #dce5f2; border-left: 1px solid #dce5f2; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(50% - 1px), #e8eef7 50%); }
+        .bar-track { height: 1px; background: transparent; }
+        .empty-bar-row b { display: none; }
+        .bar-axis-label { position: absolute; bottom: 0; color: #71809d; font-size: .625rem; font-weight: 700; }
+        .bar-axis-zero { left: calc(38% + .75rem); transform: translateX(-50%); }
+        .bar-axis-one { right: 0; }
+        .rank-list { display: grid; gap: .75rem; margin-top: 1.25rem; }
+        .rank-row { display: grid; grid-template-columns: auto auto minmax(0,1fr) auto; align-items: center; gap: .75rem; border: 1px solid #e5ebf5; border-radius: .75rem; padding: .625rem .75rem; background: rgba(255,255,255,.52); }
+        .rank-number { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: .75rem; background: var(--soft); color: var(--rank); font-size: .75rem; font-weight: 800; line-height: 1rem; }
+        .rank-percent { border-radius: 999px; padding: .25rem .5rem; background: #f5f8ff; color: var(--blue); font-size: .75rem; font-weight: 800; line-height: 1rem; text-align: center; }
+        .rank-label { min-width: 0; color: #334155; font-size: .875rem; font-weight: 700; line-height: 1.25rem; overflow-wrap: anywhere; }
+        .rank-count { color: var(--ink); font-size: .75rem; font-weight: 800; line-height: 1rem; text-align: right; }
+        .axis-chart { position: relative; height: 17rem; margin-top: 1rem; border-bottom: 1px solid #dce5f2; border-left: 1px solid #dce5f2; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(50% - 1px), #e8eef7 50%); }
         .axis-chart::before { content: "0"; position: absolute; left: -.95rem; bottom: -.3rem; color: #71809d; font-size: .62rem; font-weight: 700; }
+        .axis-y { position: absolute; left: -.95rem; color: #71809d; font-size: .62rem; font-weight: 700; transform: translateY(-50%); }
+        .axis-y-top { top: 0; }
+        .axis-y-mid { top: 50%; }
         .axis-labels { position: absolute; inset: auto 0 -2.45rem; display: grid; grid-template-columns: repeat(5,1fr); gap: .25rem; color: #71809d; font-size: .58rem; font-weight: 700; text-align: center; }
-        .empty-feedback { display: grid; min-height: 10rem; place-items: center; margin-top: 1rem; border: 1px dashed #d6e1f1; border-radius: .9rem; padding: 1rem; text-align: center; }
+        .empty-feedback { display: grid; min-height: 6.625rem; place-items: center; margin-top: 1rem; border: 1px dashed #d6e1f1; border-radius: .9rem; padding: 1rem; text-align: center; }
         .empty-feedback strong { display: block; color: #334155; font-size: .8rem; }
         .empty-feedback span { display: block; margin-top: .3rem; color: #71809d; font-size: .7rem; line-height: 1.5; }
         .answer-tabs { display: flex; width: fit-content; max-width: 100%; gap: .25rem; overflow-x: auto; margin-top: 1.5rem; border: 1px solid rgba(255,255,255,.82); border-radius: 1rem; padding: .25rem; background: rgba(255,255,255,.86); box-shadow: 0 14px 34px rgba(36,73,133,.08); scrollbar-width: none; }
@@ -277,7 +285,7 @@
             .mobile-header { position: sticky; top: 0; z-index: 40; display: flex; height: 4rem; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.78); padding: 0 1rem; background: rgba(255,255,255,.90); box-shadow: 0 8px 24px rgba(36,75,135,.08); backdrop-filter: blur(.85rem) saturate(130%); }
             .mobile-header img { width: 9rem; height: auto; }
             .mobile-menu { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid var(--border); border-radius: .75rem; background: white; color: var(--navy); }
-            .content { padding: 1.25rem 1rem 2rem; }
+            .content { padding: 1.25rem 1rem; }
         }
         @media (max-width: 760px) {
             .page-header { gap: 1.25rem; }
@@ -289,8 +297,8 @@
             .kpi-grid, .grid-thirds { grid-template-columns: 1fr; }
             .grid-thirds .panel:last-child { grid-column: auto; }
             .attendance-content { grid-template-columns: 1fr; }
-            .empty-bar-row { grid-template-columns: minmax(0,1fr) 2rem; }
-            .empty-bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
+            .empty-bar-row { grid-template-columns: 38% minmax(0,1fr); }
+            .empty-bar-row .bar-track { grid-column: auto; grid-row: auto; }
             .filter-panel { grid-template-columns: 1fr; }
             .questions-tools { justify-content: flex-start; }
             .add-menu { min-width: 0; }
@@ -314,10 +322,12 @@
             .kpi-grid { grid-template-columns: 1fr; }
             .panel { padding: 1.25rem; }
             .panel h2 { font-size: 1rem; line-height: 1.5rem; }
+            .panel-subtitle { font-size: .75rem; line-height: 1.25rem; }
             .panel-head { align-items: flex-start; }
-            .detail-link { padding: .45rem .55rem; }
-            .rank-row { grid-template-columns: 2rem 3rem minmax(0,1fr); }
-            .rank-count { display: none; }
+            .attendance-content { height: 23rem; }
+            .empty-donut { width: 14rem; }
+            .rank-row { grid-template-columns: auto auto minmax(0,1fr) auto; }
+            .rank-count { display: block; }
             .answer-tabs { width: 100%; }
             .answer-tab { min-width: 0; flex: 1; padding-inline: .5rem; font-size: .68rem; text-align: center; white-space: nowrap; }
             .filter-actions { display: grid; grid-template-columns: 1fr 1fr; }
@@ -448,15 +458,15 @@
                         </section>
                         <section class="grid-half">
                             <article class="card panel"><div class="panel-head"><div><h2>Top Attendance Barriers</h2><p class="panel-subtitle">Q3 · Multiple selections allowed; percentages may exceed 100%</p></div><button class="detail-link" type="button" data-demo-message="Attendance evidence requires live survey submissions.">View all reasons</button></div><div class="empty-bars">
-                                <div class="empty-bar-row"><span>My schedule has changed.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>The available session times are inconvenient.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I didn’t know when sessions were available.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I haven’t been motivated to join.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I’m nervous about speaking or making mistakes.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>The topics or activities don’t interest me.</span><i class="bar-track"></i><b>0</b></div>
+                                <div class="empty-bar-row"><span>My schedule has changed.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>The available session times are inconvenient.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I didn’t know when sessions were available.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I haven’t been motivated to join.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>I’m nervous about speaking or making mistakes.</span><i class="bar-track"></i><b>0</b></div><div class="empty-bar-row"><span>The topics or activities don’t interest me.</span><i class="bar-track"></i><b>0</b></div><span class="bar-axis-label bar-axis-zero">0</span><span class="bar-axis-label bar-axis-one">1</span>
                             </div></article>
                             <article class="card panel"><div class="panel-head"><div><h2>Preferred Session Format</h2><p class="panel-subtitle">Which format respondents prefer</p></div><button class="detail-link" type="button" data-demo-message="Format details require live survey submissions.">View details</button></div><div class="rank-list">
                                 <div class="rank-row" style="--rank:#1457ff;--soft:#e8f0ff"><span class="rank-number">1</span><span class="rank-percent">N/A</span><span class="rank-label">Small-group conversations</span><span class="rank-count">0</span></div><div class="rank-row" style="--rank:#10a879;--soft:#e4f8f1"><span class="rank-number">2</span><span class="rank-percent">N/A</span><span class="rank-label">Pair speaking activities</span><span class="rank-count">0</span></div><div class="rank-row" style="--rank:#e49a00;--soft:#fff3d8"><span class="rank-number">3</span><span class="rank-percent">N/A</span><span class="rank-label">Teacher-led discussion with feedback</span><span class="rank-count">0</span></div><div class="rank-row" style="--rank:#815dd6;--soft:#f1eaff"><span class="rank-number">4</span><span class="rank-percent">N/A</span><span class="rank-label">Interactive speaking games and challenges</span><span class="rank-count">0</span></div><div class="rank-row" style="--rank:#e65d78;--soft:#ffe8ee"><span class="rank-number">5</span><span class="rank-percent">N/A</span><span class="rank-label">A combination of formats</span><span class="rank-count">0</span></div>
                             </div></article>
                         </section>
                         <section class="grid-thirds">
-                            <article class="card panel"><div class="panel-head"><div><h2>Preferred Time to Attend</h2><p class="panel-subtitle">Preferred local periods, not converted schedules</p></div><button class="detail-link" type="button" data-demo-message="Time preference details require live survey submissions.">View details</button></div><div class="axis-chart" role="img" aria-label="Preferred time chart: no responses"><div class="axis-labels"><span>Morning<br>6 AM–12 PM</span><span>Afternoon<br>12–5 PM</span><span>Evening<br>5–9 PM</span><span>Late evening<br>After 9 PM</span><span>Availability<br>changes</span></div></div></article>
-                            <article class="card panel"><div class="panel-head"><div><h2>Likelihood to Attend Again</h2><p class="panel-subtitle">Stated intention, not measured future attendance</p></div><button class="detail-link" type="button" data-demo-message="Likelihood details require live survey submissions.">View details</button></div><div class="axis-chart" role="img" aria-label="Likelihood chart: no responses"><div class="axis-labels"><span>Very likely</span><span>Somewhat likely</span><span>Not sure</span><span>Somewhat unlikely</span><span>Very unlikely</span></div></div></article>
+                            <article class="card panel"><div class="panel-head"><div><h2>Preferred Time to Attend</h2><p class="panel-subtitle">Preferred local periods, not converted schedules</p></div><button class="detail-link" type="button" data-demo-message="Time preference details require live survey submissions.">View details</button></div><div class="axis-chart" role="img" aria-label="Preferred time chart: no responses"><span class="axis-y axis-y-top">2</span><span class="axis-y axis-y-mid">1</span><div class="axis-labels"><span>Morning<br>6 AM–12 PM</span><span>Afternoon<br>12–5 PM</span><span>Evening<br>5–9 PM</span><span>Late evening<br>After 9 PM</span><span>Availability<br>changes</span></div></div></article>
+                            <article class="card panel"><div class="panel-head"><div><h2>Likelihood to Attend Again</h2><p class="panel-subtitle">Stated intention, not measured future attendance</p></div><button class="detail-link" type="button" data-demo-message="Likelihood details require live survey submissions.">View details</button></div><div class="axis-chart" role="img" aria-label="Likelihood chart: no responses"><span class="axis-y axis-y-top">2</span><span class="axis-y axis-y-mid">1</span><div class="axis-labels"><span>Very likely</span><span>Somewhat likely</span><span>Not sure</span><span>Somewhat unlikely</span><span>Very unlikely</span></div></div></article>
                             <article class="card panel"><div class="panel-head"><div><h2>Recent Written Feedback</h2><p class="panel-subtitle">Latest non-empty comments in this period</p></div><button class="detail-link" type="button" data-demo-message="Written feedback requires live survey submissions.">View all</button></div><div class="empty-feedback"><div><strong>No written feedback</strong><span>No comments were submitted in this period.</span></div></div></article>
                         </section>
                     </div>
