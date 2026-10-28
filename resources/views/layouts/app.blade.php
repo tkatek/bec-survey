@@ -14,7 +14,7 @@
         <div x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false" class="admin-shell min-h-screen">
             <div x-cloak x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-[#071326]/45 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false" aria-hidden="true"></div>
 
-            <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-[#dce5f2] bg-white px-4 py-6 transition-transform duration-200 ease-out lg:translate-x-0" aria-label="Administrator navigation">
+            <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 flex w-60 flex-col overflow-x-hidden overflow-y-auto border-r border-[#dce5f2] bg-white px-4 py-6 transition-transform duration-200 ease-out lg:translate-x-0" aria-label="Administrator navigation">
                 <div class="flex items-center justify-between gap-4 px-2">
                     <a href="{{ route('dashboard') }}" class="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8] focus-visible:ring-offset-4">
                         <img class="w-44" src="{{ asset('images/conversation-room/boston-english-center-logo.png') }}" alt="Boston English Center">
@@ -43,21 +43,21 @@
                     </a>
                 </nav>
 
-                <div class="mt-auto grid gap-3">
-                    <a href="{{ route('conversation-room.create') }}" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 rounded-xl border border-[#dce5f2] bg-white px-3 py-2.5 text-xs font-bold text-[#1357e8] transition hover:border-[#1357e8] hover:bg-[#f5f8ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
+                <div class="mt-auto grid min-w-0 gap-3 pt-6">
+                    <a href="{{ route('conversation-room.create') }}" target="_blank" rel="noopener" class="flex w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-[#dce5f2] bg-white px-3 py-2.5 text-xs font-bold text-[#1357e8] transition hover:border-[#1357e8] hover:bg-[#f5f8ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
                         Open student survey
                     </a>
-                    <div class="rounded-2xl bg-[#071326] p-4 text-white">
-                    <p class="truncate text-sm font-bold">{{ Auth::user()->name }}</p>
-                    <p class="mt-1 truncate text-xs text-blue-100">{{ Auth::user()->email }}</p>
-                    <form method="POST" action="{{ route('logout') }}" class="mt-4">
-                        @csrf
-                        <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /></svg>
-                            Sign out
-                        </button>
-                    </form>
+                    <div class="w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-[#071326] p-4 text-white">
+                        <p class="min-w-0 truncate text-sm font-bold">{{ Auth::user()->name }}</p>
+                        <p class="mt-1 min-w-0 truncate text-xs text-blue-100" title="{{ Auth::user()->email }}">{{ Auth::user()->email }}</p>
+                        <form method="POST" action="{{ route('logout') }}" class="mt-4 min-w-0">
+                            @csrf
+                            <button class="flex w-full min-w-0 items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /></svg>
+                                Sign out
+                            </button>
+                        </form>
                     </div>
                 </div>
             </aside>
