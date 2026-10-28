@@ -632,14 +632,11 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 tooltip: (contextItem) => {
                     const point = this.analytics.series.points[contextItem.dataIndex];
                     const responseLabel = point.value === 1 ? 'response' : 'responses';
-                    const dateLines = String(point.fullLabel)
-                        .split(' – ')
-                        .flatMap((part) => this.wrapTooltipText(part, 30));
+                    const dateLines = this.wrapTooltipText(point.fullLabel, 26);
 
                     return [
                         `${point.value} ${responseLabel}`,
                         ...dateLines,
-                        this.analytics.series.timezone,
                     ];
                 },
                 scales: {
