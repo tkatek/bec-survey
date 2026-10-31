@@ -6,6 +6,93 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="theme-color" content="#eef4ff">
         <title>{{ config('app.name', 'Boston English Center') }}</title>
+        <script>
+            (function () {
+                var dashboardPath = new URL(@json(route('dashboard'))).pathname;
+
+                if (location.pathname !== dashboardPath) {
+                    return;
+                }
+
+                var stored = null;
+
+                try {
+                    stored = localStorage.getItem('bec-theme');
+                } catch (error) {
+                    stored = null;
+                }
+
+                var media = window.matchMedia('(prefers-color-scheme: dark)');
+
+                function applyTheme(dark) {
+                    document.documentElement.classList.toggle('dark', dark);
+                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+
+                    var meta = document.querySelector('meta[name="theme-color"]');
+
+                    if (meta) {
+                        meta.setAttribute('content', dark ? '#070d1d' : '#eef4ff');
+                    }
+
+                    window.dispatchEvent(new Event('resize'));
+                }
+
+                window.becTheme = {
+                    set: function (dark, persist) {
+                        applyTheme(dark);
+
+                        if (persist) {
+                            try {
+                                localStorage.setItem('bec-theme', dark ? 'dark' : 'light');
+                            } catch (error) {
+                                /* storage unavailable */
+                            }
+                        }
+                    },
+                };
+
+                applyTheme(stored ? stored === 'dark' : media.matches);
+
+                media.addEventListener('change', function (event) {
+                    if (!stored) {
+                        applyTheme(event.matches);
+                    }
+                });
+
+                // Chart.js colors are hardcoded inside the bundle; remap them at draw time
+                // so canvas charts match the active theme without touching app logic.
+                if (window.CanvasRenderingContext2D) {
+                    var chartColors = {
+                        '#0b1739': '#e9efff',
+                        '#71809d': '#96a7c9',
+                        '#edf1f7': 'rgba(150, 173, 218, 0.16)',
+                    };
+
+                    var proto = CanvasRenderingContext2D.prototype;
+
+                    ['fillStyle', 'strokeStyle'].forEach(function (property) {
+                        var descriptor = Object.getOwnPropertyDescriptor(proto, property);
+
+                        Object.defineProperty(proto, property, {
+                            get: function () {
+                                return descriptor.get.call(this);
+                            },
+                            set: function (value) {
+                                if (
+                                    typeof value === 'string'
+                                    && document.documentElement.classList.contains('dark')
+                                    && chartColors[value.toLowerCase()]
+                                ) {
+                                    value = chartColors[value.toLowerCase()];
+                                }
+
+                                descriptor.set.call(this, value);
+                            },
+                        });
+                    });
+                }
+            })();
+        </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="admin-app-body min-h-screen overflow-x-hidden font-sans text-[#071326] antialiased">
@@ -14,8 +101,9 @@
 
             <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="admin-sidebar fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-x-hidden overflow-y-auto px-4 py-5 transition-transform duration-200 ease-out lg:inset-y-3 lg:left-3 lg:translate-x-0 lg:rounded-[1.6rem]" aria-label="Administrator navigation">
                 <div class="admin-brand flex items-center justify-between gap-4 rounded-2xl px-3 py-4">
-                    <a href="{{ route('dashboard') }}" class="rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8] focus-visible:ring-offset-4">
-                        <img class="w-44 max-w-full" src="{{ asset('images/conversation-room/boston-english-center-logo.png') }}" alt="Boston English Center">
+                    <a href="{{ route('dashboard') }}" class="admin-brand-link group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8] focus-visible:ring-offset-4">
+                        <img src="{{ asset('images/conversation-room/bec-logo-mark.png') }}" alt="" aria-hidden="true" class="admin-brand-mark">
+                        <span class="admin-brand-name"><strong>Boston</strong><em>English Center</em></span>
                     </a>
                     <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" @click="sidebarOpen = false" aria-label="Close navigation">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18" /></svg>
@@ -71,7 +159,10 @@
                     <button type="button" class="rounded-xl border border-[#dce5f2] p-2.5 text-[#071326]" @click="sidebarOpen = true" aria-label="Open navigation">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
                     </button>
-                    <img class="w-36" src="{{ asset('images/conversation-room/boston-english-center-logo.png') }}" alt="Boston English Center">
+                    <a href="{{ route('dashboard') }}" class="admin-brand-link" aria-label="Boston English Center">
+                        <img src="{{ asset('images/conversation-room/bec-logo-mark.png') }}" alt="" aria-hidden="true" class="admin-brand-mark">
+                        <span class="admin-brand-name"><strong>Boston</strong><em>English Center</em></span>
+                    </a>
                     <span class="h-10 w-10" aria-hidden="true"></span>
                 </header>
                 @isset($header)

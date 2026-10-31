@@ -404,34 +404,127 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
     },
 }));
 
+const buildThankYouConfetti = (overlay) => {
+    if (!overlay) {
+        return [];
+    }
+
+    overlay.replaceChildren();
+
+    const palette = ['#1764ff', '#5b9bff', '#9cc4ff', '#16b981', '#16b981', '#f2b74a'];
+    const particles = [];
+
+    for (let index = 0; index < 26; index += 1) {
+        const isDot = index % 3 === 2;
+        const angle = (index / 26) * Math.PI * 2 + gsap.utils.random(-0.18, 0.18);
+        const distance = gsap.utils.random(58, 108);
+        const element = document.createElement('span');
+
+        element.dataset.shape = isDot ? 'dot' : 'rect';
+
+        if (isDot) {
+            const size = gsap.utils.random(4, 6);
+            element.style.width = `${size}px`;
+            element.style.height = `${size}px`;
+        } else {
+            element.style.width = `${gsap.utils.random(4, 7)}px`;
+            element.style.height = `${gsap.utils.random(8, 12)}px`;
+        }
+
+        element.style.background = palette[index % palette.length];
+        overlay.appendChild(element);
+
+        particles.push({
+            element,
+            x: Math.cos(angle) * distance,
+            y: Math.sin(angle) * distance + 16,
+            rotation: gsap.utils.random(-60, 60),
+            delay: gsap.utils.random(0, 0.22),
+            duration: gsap.utils.random(0.7, 0.95),
+        });
+    }
+
+    return particles;
+};
+
+const animateThankYouCelebration = () => {
+    const header = document.querySelector('[data-thanks-header]');
+    const card = document.querySelector('[data-thanks-card]');
+    const visual = document.querySelector('[data-thanks-visual]');
+    const check = document.querySelector('[data-thanks-check]');
+    const rings = Array.from(document.querySelectorAll('[data-thanks-ring], [data-thanks-ring-late]'));
+    const confettiOverlay = document.querySelector('[data-thanks-confetti]');
+    const reveals = Array.from(document.querySelectorAll('[data-thanks-reveal]'));
+
+    if (!visual || !check) {
+        return;
+    }
+
+    gsap.killTweensOf([header, card, visual, check, ...rings, ...reveals]);
+
+    const particles = buildThankYouConfetti(confettiOverlay);
+
+    gsap.set(check, { strokeDasharray: 24, strokeDashoffset: 24 });
+    gsap.set(rings, { opacity: 0 });
+    gsap.set(particles.map((particle) => particle.element), { opacity: 0 });
+
+    const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    if (header) {
+        timeline.from(header, { opacity: 0, y: -10, duration: 0.4, clearProps: 'opacity,transform' }, 0);
+    }
+
+    timeline
+        .from(card, { opacity: 0, y: 18, duration: 0.45, clearProps: 'opacity,transform' }, 0)
+        .fromTo(visual, { scale: 0.62 }, { scale: 1, duration: 0.35, ease: 'back.out(1.8)' }, 0.02)
+        .to(check, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.inOut' }, 0.2);
+
+    rings.forEach((ring, index) => {
+        timeline.fromTo(ring, {
+            scale: 0.55,
+            opacity: 0.6,
+        }, {
+            scale: 1.3,
+            opacity: 0,
+            duration: 0.85,
+            ease: 'power2.out',
+        }, 0.45 + index * 0.22);
+    });
+
+    particles.forEach(({ element, x, y, rotation, delay, duration }) => {
+        timeline.fromTo(element, {
+            x: 0,
+            y: 0,
+            rotation,
+            opacity: 1,
+        }, {
+            x,
+            y,
+            rotation: rotation + gsap.utils.random(120, 260),
+            opacity: 0,
+            duration,
+            ease: 'power2.out',
+            onComplete: () => element.remove(),
+        }, 0.45 + delay);
+    });
+
+    timeline.from(reveals, {
+        opacity: 0,
+        y: 10,
+        duration: 0.32,
+        stagger: 0.09,
+        clearProps: 'opacity,transform',
+    }, 0.58);
+};
+
 Alpine.data('surveyThankYou', () => ({
     init() {
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
 
         this.$nextTick(() => {
-            if (prefersReducedMotion) {
-                animateSurveyComplete(document.querySelector('[data-standalone-complete]'), true);
-
-                return;
-            }
-
-            gsap.timeline({
-                defaults: { ease: 'power3.out' },
-                onComplete: () => {
-                    animateSurveyComplete(document.querySelector('[data-standalone-complete]'), false);
-                },
-            })
-                .from('[data-survey-intro] [data-intro-reveal]', {
-                    opacity: 0,
-                    y: 16,
-                    duration: 0.42,
-                    stagger: 0.055,
-                })
-                .from('[data-survey-card]', {
-                    opacity: 0,
-                    x: 24,
-                    duration: 0.5,
-                }, 0.06);
+            animateThankYouCelebration();
         });
     },
 }));
@@ -873,6 +966,14 @@ Alpine.data('dashboardAnalytics', (config) => ({
         return distributions.find((item) => item.group === group)
             ?? distributions[0]
             ?? { answered: 0, options: [] };
+    },
+
+    hasAnswers(question, group = null) {
+        return this.distribution(question, group).answered > 0;
+    },
+
+    get hasSeriesData() {
+        return (this.analytics.series?.points ?? []).some((point) => Number(point.value ?? 0) > 0);
     },
 
     rankedOptions(question) {

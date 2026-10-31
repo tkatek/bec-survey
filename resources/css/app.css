@@ -1421,11 +1421,6 @@ textarea {
     text-align: center;
 }
 
-.survey-card--complete .survey-complete {
-    min-height: 0;
-    flex: 1;
-}
-
 .survey-complete-visual {
     position: relative;
     display: grid;
@@ -2445,6 +2440,352 @@ textarea {
     }
 }
 
+/* ==========================================================================
+   Conversation Room survey — Thank You page (scoped, mobile-first)
+   ========================================================================== */
+
+.bec-thanks-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: clip;
+    background:
+        radial-gradient(circle at 50% 15%, rgb(53 130 255 / 0.12), transparent 46%),
+        linear-gradient(180deg, #f8fbff 0%, #eaf3ff 100%);
+    color: var(--bec-ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.bec-thanks-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.bec-thanks-blob {
+    position: absolute;
+    border-radius: 50%;
+}
+
+.bec-thanks-blob--blue {
+    top: -11rem;
+    right: -13rem;
+    width: 30rem;
+    height: 30rem;
+    background: radial-gradient(circle, rgb(23 100 255 / 0.09), transparent 68%);
+}
+
+.bec-thanks-blob--mint {
+    bottom: -15rem;
+    left: -15rem;
+    width: 36rem;
+    height: 36rem;
+    background: radial-gradient(circle, rgb(22 185 129 / 0.08), transparent 68%);
+}
+
+.bec-thanks-shell {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    max-width: 34rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-inline: auto;
+    padding: 1rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.bec-thanks-header {
+    display: flex;
+    min-height: 4rem;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid rgb(255 255 255 / 0.9);
+    border-radius: 1.15rem;
+    background: rgb(255 255 255 / 0.82);
+    padding: 0.6rem 1rem;
+    box-shadow:
+        0 0.75rem 2rem rgb(32 68 130 / 0.1),
+        inset 0 1px 0 rgb(255 255 255 / 0.9);
+    -webkit-backdrop-filter: blur(0.75rem);
+    backdrop-filter: blur(0.75rem);
+}
+
+.bec-thanks-brand {
+    display: inline-flex;
+    min-width: 0;
+}
+
+.bec-thanks-brand img {
+    display: block;
+    width: clamp(7.5rem, 30vw, 9.5rem);
+    height: auto;
+}
+
+.bec-thanks-status {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    background: #e7f8f1;
+    box-shadow: inset 0 0 0 1px rgb(22 185 129 / 0.2);
+    padding: 0.45rem 0.8rem;
+    color: #0e8f66;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.bec-thanks-status svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.6;
+}
+
+.bec-thanks-main {
+    display: flex;
+    width: 100%;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.bec-thanks-card {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border: 1px solid rgb(220 229 242 / 0.9);
+    border-radius: 1.6rem;
+    background: #ffffff;
+    box-shadow:
+        0 1.5rem 3.5rem rgb(32 68 130 / 0.12),
+        0 0.25rem 0.75rem rgb(32 68 130 / 0.04);
+    padding: 1.5rem 1.35rem 1.6rem;
+}
+
+.bec-thanks-success {
+    position: relative;
+    display: grid;
+    width: 8.25rem;
+    height: 8.25rem;
+    place-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.bec-thanks-success-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(23 100 255 / 0.14) 0%, rgb(23 100 255 / 0.05) 62%, transparent 75%);
+}
+
+.bec-thanks-success-ring {
+    position: absolute;
+    inset: 8%;
+    border: 2px solid rgb(19 87 232 / 0.22);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.bec-thanks-success-mark {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 5.125rem;
+    height: 5.125rem;
+    place-items: center;
+    border-radius: 1.5rem;
+    background: linear-gradient(150deg, #2f74ff, var(--bec-blue) 62%);
+    color: #ffffff;
+    box-shadow:
+        0 1.15rem 2.4rem rgb(19 87 232 / 0.32),
+        0 0 2.4rem rgb(19 87 232 / 0.16);
+}
+
+.bec-thanks-success-mark svg {
+    width: 2.6rem;
+    height: 2.6rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+}
+
+.bec-thanks-check {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.bec-thanks-confetti {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.bec-thanks-confetti span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+}
+
+.bec-thanks-confetti span[data-shape='rect'] {
+    border-radius: 2px;
+}
+
+.bec-thanks-confetti span[data-shape='dot'] {
+    border-radius: 50%;
+}
+
+.bec-thanks-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.65rem 0 0;
+    border-radius: 999px;
+    background: #e8f4ff;
+    padding: 0.42rem 0.85rem;
+    color: #0d5bdb;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.bec-thanks-label svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.6;
+}
+
+.bec-thanks-title {
+    max-width: 18ch;
+    margin: 0.85rem 0 0;
+    color: var(--bec-navy);
+    font-size: clamp(1.6rem, 6.4vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.16;
+    text-wrap: balance;
+}
+
+.bec-thanks-message {
+    max-width: 36ch;
+    margin: 0.75rem 0 0;
+    color: var(--bec-muted);
+    font-size: 0.9rem;
+    line-height: 1.62;
+}
+
+.bec-thanks-divider {
+    display: flex;
+    width: min(100%, 15rem);
+    align-items: center;
+    gap: 0.65rem;
+    margin: 1.35rem 0 1.15rem;
+}
+
+.bec-thanks-divider span {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #d7e4f8);
+}
+
+.bec-thanks-divider span:last-child {
+    background: linear-gradient(90deg, #d7e4f8, transparent);
+}
+
+.bec-thanks-divider svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    fill: #a8c4f2;
+}
+
+.bec-thanks-actions {
+    display: grid;
+    width: 100%;
+    gap: 0.7rem;
+    margin-top: 0.35rem;
+}
+
+.bec-thanks-button {
+    display: inline-flex;
+    min-height: 3.35rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 1.05rem;
+    background: linear-gradient(150deg, #1764ff, #1557f0);
+    padding: 0.9rem 1.4rem;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 0.65rem 1.5rem rgb(21 87 240 / 0.28);
+    transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+
+.bec-thanks-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.8rem 1.75rem rgb(21 87 240 / 0.34);
+}
+
+.bec-thanks-button:active {
+    transform: translateY(1px) scale(0.99);
+    box-shadow: 0 0.35rem 0.9rem rgb(21 87 240 / 0.2);
+}
+
+.bec-thanks-button:focus-visible {
+    outline: 3px solid rgb(19 87 232 / 0.25);
+    outline-offset: 2px;
+}
+
+.bec-thanks-button svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
+}
+
+@media (min-width: 480px) {
+    .bec-thanks-shell {
+        padding-inline: 1.5rem;
+    }
+
+    .bec-thanks-card {
+        padding: 2.5rem 2.75rem 2.6rem;
+    }
+
+    .bec-thanks-title {
+        font-size: 1.9rem;
+    }
+
+    .bec-thanks-message {
+        font-size: 0.95rem;
+    }
+}
+
 /* Survey question manager */
 .question-admin {
     color: var(--bec-ink);
@@ -2811,4 +3152,628 @@ textarea {
     .admin-preview-stage .survey-split-fields {
         grid-template-columns: 1fr;
     }
+}
+
+/* ==========================================================================
+   Dark theme — follows the visitor's prefers-color-scheme (dashboard only).
+   Activated by the early theme script in layouts/app.blade.php.
+   ========================================================================== */
+html.dark body.admin-app-body {
+    background: #070d1d;
+    color: #d7e2f8;
+}
+
+html.dark .admin-shell {
+    background:
+        radial-gradient(circle at 94% 7%, rgb(30 71 160 / 0.4), transparent 30rem),
+        radial-gradient(circle at 7% 94%, rgb(63 46 148 / 0.35), transparent 32rem),
+        radial-gradient(circle at 52% 46%, rgb(14 40 92 / 0.32), transparent 42rem),
+        linear-gradient(135deg, #0a1124 0%, #0b1526 46%, #0a1226 72%, #0d1428 100%);
+}
+
+html.dark .admin-shell .admin-sidebar {
+    border-right: 1px solid rgb(255 255 255 / 0.07);
+    background: rgb(10 18 38 / 0.92);
+    box-shadow:
+        18px 0 48px rgb(0 0 0 / 0.42),
+        inset -1px 0 0 rgb(255 255 255 / 0.05);
+    -webkit-backdrop-filter: blur(0.9rem);
+    backdrop-filter: blur(0.9rem);
+}
+
+html.dark .admin-shell .admin-brand {
+    border-color: rgb(255 255 255 / 0.09);
+    background: linear-gradient(135deg, rgb(19 30 58 / 0.9), rgb(16 34 70 / 0.8));
+    box-shadow:
+        0 12px 30px rgb(0 0 0 / 0.34),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-nav-link {
+    color: #94a5c8;
+}
+
+html.dark .admin-shell .admin-nav-link:hover {
+    border-color: rgb(255 255 255 / 0.1);
+    background: rgb(255 255 255 / 0.06);
+    color: #e9efff;
+}
+
+html.dark .admin-shell .admin-nav-link.is-active {
+    border-color: rgb(64 111 255 / 0.4);
+    background: linear-gradient(100deg, rgb(23 48 108 / 0.95), rgb(21 38 92 / 0.9));
+    color: #8fb2ff;
+    box-shadow:
+        0 10px 24px rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+html.dark .admin-shell .admin-secondary-action {
+    border-color: rgb(94 124 190 / 0.4);
+    background: rgb(255 255 255 / 0.05);
+    color: #8fb2ff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-secondary-action:hover {
+    border-color: rgb(20 87 255 / 0.6);
+    background: rgb(255 255 255 / 0.09);
+}
+
+html.dark .admin-shell .admin-account-card {
+    border-color: rgb(255 255 255 / 0.12);
+    background:
+        radial-gradient(circle at 92% 8%, rgb(51 125 255 / 0.5), transparent 7rem),
+        linear-gradient(145deg, #0d1e45, #12336e 72%, #17509b);
+    box-shadow:
+        0 18px 32px rgb(0 0 0 / 0.45),
+        inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+html.dark .admin-shell .admin-mobile-header {
+    border-bottom-color: rgb(255 255 255 / 0.08);
+    background: rgb(9 16 34 / 0.9);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+}
+
+html.dark .admin-shell .admin-card {
+    border-color: rgb(255 255 255 / 0.09);
+    background: #101b33;
+    box-shadow:
+        0 18px 44px rgb(0 0 0 / 0.4),
+        0 2px 8px rgb(0 0 0 / 0.3),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+html.dark .admin-shell .admin-kpi-icon {
+    filter: saturate(0.9) brightness(0.92);
+}
+
+html.dark .admin-shell .admin-insight {
+    border-color: rgb(255 255 255 / 0.09);
+    background:
+        linear-gradient(112deg, rgb(20 37 82 / 0.95), rgb(26 30 84 / 0.92) 64%, rgb(16 27 56 / 0.92));
+    box-shadow:
+        0 18px 44px rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-filter-group,
+html.dark .admin-shell .admin-control {
+    border-color: rgb(98 128 195 / 0.35);
+    background: rgb(14 23 46 / 0.78);
+    box-shadow:
+        0 8px 22px rgb(0 0 0 / 0.34),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+    -webkit-backdrop-filter: blur(0.75rem) saturate(125%);
+    backdrop-filter: blur(0.75rem) saturate(125%);
+}
+
+html.dark .admin-shell .admin-control {
+    color: #c9d6f0;
+}
+
+html.dark .admin-shell .admin-control:hover {
+    border-color: rgb(20 87 255 / 0.55);
+    background: rgb(18 30 58 / 0.92);
+    color: #8fb2ff;
+}
+
+html.dark .admin-shell .admin-popover {
+    border-color: rgb(104 134 200 / 0.4);
+    background: rgb(13 22 44 / 0.98);
+    box-shadow: 0 28px 70px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-data-row,
+html.dark .admin-shell .admin-feedback-row {
+    border-color: rgb(255 255 255 / 0.09);
+    background: rgb(255 255 255 / 0.035);
+}
+
+html.dark .admin-shell .admin-data-row:hover,
+html.dark .admin-shell .admin-feedback-row:hover {
+    border-color: rgb(84 118 196 / 0.5);
+    background: rgb(255 255 255 / 0.07);
+    box-shadow: 0 9px 20px rgb(0 0 0 / 0.35);
+}
+
+html.dark .admin-shell .admin-card-title {
+    color: #eef3ff;
+}
+
+html.dark .admin-shell .admin-card-subtitle {
+    color: #94a5c8;
+}
+
+html.dark .admin-shell .admin-detail-link {
+    border-color: rgb(84 118 196 / 0.4);
+    background: rgb(255 255 255 / 0.05);
+    color: #8fb2ff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-detail-link:hover {
+    border-color: rgb(20 87 255 / 0.6);
+    background: rgb(255 255 255 / 0.09);
+}
+
+/* Utility colors used inline across the dashboard, remapped for dark.
+   Attribute selectors avoid clashing with Tailwind utility definitions. */
+html.dark .admin-shell [class~="text-[#0b1739]"] {
+    color: #eef3ff;
+}
+
+html.dark .admin-shell [class~="text-[#071326]"] {
+    color: #eef3ff;
+}
+
+html.dark .admin-shell [class~="text-[#334a75]"],
+html.dark .admin-shell [class~="text-[#334155]"] {
+    color: #c9d6f0;
+}
+
+html.dark .admin-shell [class~="text-[#52658b]"],
+html.dark .admin-shell [class~="text-[#64748b]"],
+html.dark .admin-shell [class~="text-[#71809d]"] {
+    color: #94a5c8;
+}
+
+html.dark .admin-shell [class~="text-[#1457ff]"] {
+    color: #7fa4ff;
+}
+
+html.dark .admin-shell [class~="bg-[#edf3ff]"],
+html.dark .admin-shell [class~="bg-[#f5f8ff]"] {
+    background-color: rgb(66 105 255 / 0.16);
+}
+
+html.dark .admin-shell [class~="hover:bg-[#f1f5ff]"]:hover {
+    background-color: rgb(255 255 255 / 0.08);
+}
+
+html.dark .admin-shell [class~="border-[#e5ebf5]"],
+html.dark .admin-shell [class~="border-[#dce5f2]"],
+html.dark .admin-shell [class~="border-[#cbd5e1]"],
+html.dark .admin-shell [class~="border-[#edf1f7]"] {
+    border-color: rgb(255 255 255 / 0.12);
+}
+
+html.dark .admin-shell [class~="bg-white"] {
+    background-color: #131f39;
+}
+
+html.dark .admin-shell [class~="bg-white/70"] {
+    background-color: rgb(255 255 255 / 0.05);
+}
+
+html.dark .admin-shell [class~="bg-white/75"] {
+    background-color: rgb(255 255 255 / 0.08);
+}
+
+html.dark .admin-shell [class~="border-rose-200"] {
+    border-color: rgb(248 113 113 / 0.35);
+}
+
+html.dark .admin-shell [class~="bg-rose-50"] {
+    background-color: rgb(248 113 113 / 0.12);
+}
+
+html.dark .admin-shell [class~="text-rose-800"] {
+    color: #fda4af;
+}
+
+html.dark .admin-shell input[type="date"] {
+    background-color: rgb(9 16 34);
+    color: #eef3ff;
+}
+
+html.dark .admin-shell .admin-popover table thead {
+    background-color: rgb(13 22 44);
+}
+
+/* Sidebar clarity refinements for dark mode. */
+html.dark .admin-shell .admin-sidebar {
+    background: rgb(13 22 44 / 0.97);
+}
+
+html.dark .admin-shell .admin-brand {
+    border-color: rgb(255 255 255 / 0.09);
+    background: linear-gradient(135deg, rgb(19 30 58 / 0.9), rgb(16 34 70 / 0.8));
+    box-shadow:
+        0 12px 30px rgb(0 0 0 / 0.34),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell .admin-nav-link {
+    color: #bccbe6;
+}
+
+html.dark .admin-shell .admin-nav-link:hover {
+    color: #ffffff;
+}
+
+html.dark .admin-shell .admin-nav-icon {
+    border-color: rgb(255 255 255 / 0.16);
+    background: rgb(255 255 255 / 0.07);
+    color: #cdd9f0;
+}
+
+html.dark .admin-shell .admin-nav-link:hover .admin-nav-icon {
+    border-color: rgb(255 255 255 / 0.28);
+    background: rgb(255 255 255 / 0.12);
+}
+
+html.dark .admin-shell .admin-nav-link.is-active {
+    color: #bcd2ff;
+}
+
+html.dark .admin-shell .admin-nav-link.is-active .admin-nav-icon {
+    border-color: rgb(96 140 255 / 0.55);
+    background: rgb(35 62 130 / 0.85);
+    color: #cfe0ff;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 0.35);
+}
+
+html.dark .admin-shell .admin-secondary-action {
+    border-color: rgb(106 142 214 / 0.5);
+    background: rgb(30 48 92 / 0.55);
+    color: #a9c4ff;
+}
+
+html.dark .admin-shell .admin-secondary-action:hover {
+    border-color: rgb(110 160 255 / 0.7);
+    background: rgb(38 60 116 / 0.75);
+    color: #d3e2ff;
+}
+
+html.dark .admin-shell .admin-account-card {
+    border-color: rgb(255 255 255 / 0.18);
+    background:
+        radial-gradient(circle at 92% 8%, rgb(64 138 255 / 0.55), transparent 7rem),
+        linear-gradient(145deg, #12265c, #16398a 72%, #1b57b0);
+    box-shadow:
+        0 18px 32px rgb(0 0 0 / 0.5),
+        inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+html.dark .admin-shell .admin-mobile-header .admin-brand-mark {
+    box-shadow: 0 8px 18px rgb(0 0 0 / 0.45);
+}
+
+/* Brand lockup: icon mark + theme-aware text wordmark. */
+.admin-brand-link {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.admin-brand-mark {
+    display: block;
+    width: 2.55rem;
+    height: 2.55rem;
+    flex: 0 0 auto;
+    border-radius: 0.85rem;
+    box-shadow: 0 8px 18px rgb(20 87 232 / 0.16);
+}
+
+.admin-brand-name {
+    display: grid;
+    min-width: 0;
+    line-height: 1.05;
+}
+
+.admin-brand-name strong {
+    color: #0b1739;
+    font-size: 1.16rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+}
+
+.admin-brand-name em {
+    color: #1457ff;
+    font-size: 0.95rem;
+    font-style: normal;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.admin-mobile-header .admin-brand-mark {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.7rem;
+}
+
+.admin-mobile-header .admin-brand-name strong {
+    font-size: 1rem;
+}
+
+.admin-mobile-header .admin-brand-name em {
+    font-size: 0.82rem;
+}
+
+html.dark .admin-brand-name strong {
+    color: #ffffff;
+}
+
+html.dark .admin-brand-name em {
+    color: #7fa4ff;
+}
+
+/* ==========================================================================
+   Dashboard empty states and insights banner.
+   ========================================================================== */
+/* Photo-free analytics banner with layered SVG waves. */
+.insight-banner {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 6.6rem;
+    border: 1px solid rgb(210 226 250 / 0.75);
+    border-radius: 1.125rem;
+    background:
+        radial-gradient(ellipse at 82% 48%, rgb(101 163 255 / 0.15), transparent 55%),
+        linear-gradient(110deg, #ffffff 0%, #f0f6ff 46%, #dcebff 100%);
+    box-shadow: 0 10px 28px rgb(43 91 164 / 0.05);
+    padding: 1.35rem 1.6rem;
+}
+
+.insight-banner__waves {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    width: 52%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.insight-banner__waves svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.insight-banner__content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: min(60%, 46rem);
+    min-width: 0;
+}
+
+.insight-banner__icon {
+    display: grid;
+    width: 2.95rem;
+    height: 2.95rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 0.85);
+    border-radius: 0.82rem;
+    background: #e7f0ff;
+    color: #1764ff;
+    box-shadow:
+        0 6px 16px rgb(23 100 255 / 0.1),
+        inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+
+@media (max-width: 767px) {
+    .insight-banner {
+        min-height: 7rem;
+        padding: 1rem;
+    }
+
+    .insight-banner__content {
+        max-width: 100%;
+        gap: 0.7rem;
+    }
+
+    .insight-banner__waves {
+        width: 78%;
+        opacity: 0.35;
+    }
+}
+
+.admin-kpi-label {
+    color: #52658b;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.admin-kpi-value {
+    color: #0b1739;
+    font-size: clamp(1.55rem, 1.6vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+}
+
+.admin-kpi-value--compact {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: clamp(1.02rem, 1.15vw, 1.22rem);
+    line-height: 1.2;
+}
+
+.admin-chart-empty {
+    border: 1px dashed rgb(205 220 243 / 0.9);
+    border-radius: 1rem;
+    background-image: repeating-linear-gradient(180deg, transparent 0 2.55rem, rgb(226 236 250 / 0.85) 2.55rem calc(2.55rem + 1px));
+}
+
+.admin-empty {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: center;
+    width: 100%;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+}
+
+.admin-empty--dashed {
+    border: 1.5px dashed #c9d8ef;
+    border-radius: 1rem;
+    background: #fafcff;
+}
+
+.admin-empty--grid {
+    border: 1px dashed rgb(205 220 243 / 0.9);
+    border-radius: 1rem;
+    background-image: repeating-linear-gradient(180deg, transparent 0 2.4rem, rgb(226 236 250 / 0.8) 2.4rem calc(2.4rem + 1px));
+}
+
+.admin-empty-icon {
+    display: grid;
+    width: 3.4rem;
+    height: 3.4rem;
+    place-items: center;
+    border-radius: 999px;
+    background: #edf5ff;
+    color: #1457ff;
+}
+
+.admin-empty-icon svg {
+    width: 1.65rem;
+    height: 1.65rem;
+}
+
+.admin-empty-title {
+    color: #0b1739;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.admin-empty-description {
+    max-width: 24rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.admin-donut-empty {
+    display: grid;
+    width: 11rem;
+    height: 11rem;
+    place-items: center;
+    border: 1rem solid #e0ebfb;
+    border-radius: 50%;
+    background: transparent;
+}
+
+.admin-donut-icon {
+    display: grid;
+    width: 3.9rem;
+    height: 3.9rem;
+    place-items: center;
+    border-radius: 999px;
+    background: #edf5ff;
+    color: #1457ff;
+}
+
+/* Dark variants for the empty states and banner. */
+html.dark .insight-banner {
+    border-color: rgb(255 255 255 / 0.09);
+    background:
+        radial-gradient(ellipse at 82% 48%, rgb(59 130 246 / 0.18), transparent 55%),
+        linear-gradient(110deg, #112342 0%, #16315b 58%, #173d73 100%);
+    box-shadow:
+        0 10px 28px rgb(0 0 0 / 0.35),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .insight-banner__icon {
+    border-color: rgb(255 255 255 / 0.1);
+    background: rgb(23 46 100 / 0.9);
+    color: #60a5fa;
+    box-shadow:
+        0 6px 16px rgb(0 0 0 / 0.35),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+html.dark .insight-banner__waves path:nth-of-type(1) {
+    fill: #2563eb;
+    fill-opacity: 0.3;
+}
+
+html.dark .insight-banner__waves path:nth-of-type(2) {
+    fill: #3b82f6;
+    fill-opacity: 0.24;
+}
+
+html.dark .insight-banner__waves path:nth-of-type(3) {
+    fill: #60a5fa;
+    fill-opacity: 0.16;
+}
+
+html.dark .admin-kpi-label {
+    color: #94a5c8;
+}
+
+html.dark .admin-kpi-value {
+    color: #eef3ff;
+}
+
+html.dark .admin-chart-empty {
+    border-color: rgb(255 255 255 / 0.12);
+    background-image: repeating-linear-gradient(180deg, transparent 0 2.55rem, rgb(255 255 255 / 0.05) 2.55rem calc(2.55rem + 1px));
+}
+
+html.dark .admin-empty--dashed {
+    border-color: rgb(120 148 200 / 0.4);
+    background: rgb(255 255 255 / 0.02);
+}
+
+html.dark .admin-empty--grid {
+    border-color: rgb(255 255 255 / 0.12);
+    background-image: repeating-linear-gradient(180deg, transparent 0 2.4rem, rgb(255 255 255 / 0.05) 2.4rem calc(2.4rem + 1px));
+}
+
+html.dark .admin-empty-icon {
+    background: rgb(35 62 130 / 0.6);
+    color: #9dbdff;
+}
+
+html.dark .admin-empty-title {
+    color: #eef3ff;
+}
+
+html.dark .admin-empty-description {
+    color: #94a5c8;
+}
+
+html.dark .admin-donut-empty {
+    border-color: rgb(46 66 110 / 0.9);
+}
+
+html.dark .admin-donut-icon {
+    background: rgb(35 62 130 / 0.6);
+    color: #9dbdff;
 }
