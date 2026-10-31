@@ -161,9 +161,14 @@
                             <span>Question <strong x-text="currentStep + 1"></strong> of {{ $questions->count() }}</span>
                             <span><strong x-text="progressPercentage"></strong>% complete</span>
                         </div>
+                        <div class="survey-progress-meta">
+                            <span class="survey-progress-section" x-text="activeSectionName"></span>
+                            <span class="survey-progress-count">Question <strong x-text="currentStep + 1"></strong> of {{ $questions->count() }}</span>
+                        </div>
                         <div class="survey-progress-track" role="progressbar" :aria-valuenow="progressPercentage" aria-valuemin="0" aria-valuemax="100">
                             <span :style="`width: ${progressPercentage}%`"></span>
                         </div>
+                        <p class="survey-progress-percentage"><strong x-text="progressPercentage"></strong>% complete</p>
                     </div>
 
                     <form

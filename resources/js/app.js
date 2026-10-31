@@ -151,6 +151,14 @@ Alpine.data('conversationRoomSurvey', (configuration = {}) => ({
         );
     },
 
+    get activeSectionName() {
+        const section = this.sections.find(
+            (section) => this.currentStep >= section.start && this.currentStep <= section.end,
+        );
+
+        return section?.name ?? '';
+    },
+
     clearError() {
         this.errorMessage = '';
     },
