@@ -98,7 +98,7 @@ class CommonAnswersController extends Controller
             'selectedAlert' => $alert ? $alerts->serialize($alert) + [
                 'evidenceResponseIds' => $alert->evidence_response_ids ?? [],
             ] : null,
-            'snapshotToken' => $snapshots->store($request->session(), $payload),
+            'snapshotToken' => $snapshots->store($payload),
             'alertData' => $alerts->toolbarData(),
         ]);
     }

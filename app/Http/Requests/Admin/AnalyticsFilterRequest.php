@@ -80,7 +80,7 @@ class AnalyticsFilterRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'preset' => $this->input('preset', 'month'),
+            'preset' => $this->input('preset', 'last7'),
         ]);
     }
 }

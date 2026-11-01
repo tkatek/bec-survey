@@ -157,6 +157,16 @@ body {
         transform: translateY(-1px);
     }
 
+    /* Theme toggle: light mode offers "Dark mode" with a moon, dark mode offers "Light mode" with a sun. */
+    .admin-shell .admin-theme-toggle-icon-sun,
+    .admin-shell .admin-theme-toggle-label-sun {
+        display: none;
+    }
+
+    .admin-shell .admin-theme-toggle-label-moon {
+        display: inline;
+    }
+
     .admin-shell .admin-account-card {
         border: 1px solid rgb(255 255 255 / 0.14);
         background:
@@ -3447,6 +3457,289 @@ html.dark .admin-shell .admin-secondary-action:hover {
     color: #d3e2ff;
 }
 
+html.dark .admin-shell .admin-theme-toggle-icon-moon,
+html.dark .admin-shell .admin-theme-toggle-label-moon {
+    display: none;
+}
+
+html.dark .admin-shell .admin-theme-toggle-icon-sun {
+    display: block;
+}
+
+html.dark .admin-shell .admin-theme-toggle-label-sun {
+    display: inline;
+}
+
+/* Dark refinements for the shared answer tabs, question manager, editor drawer, and dialogs. */
+html.dark .admin-shell .admin-answer-tabs {
+    border-color: rgb(98 128 195 / 0.35);
+    background: rgb(14 23 46 / 0.78);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+html.dark .admin-shell .admin-answer-tab {
+    color: #94a5c8;
+}
+
+html.dark .admin-shell .admin-answer-tab:hover {
+    color: #c9d6f0;
+    background: rgb(255 255 255 / 0.06);
+}
+
+html.dark .admin-shell .admin-answer-tab.is-active {
+    border-color: rgb(96 140 255 / 0.55);
+    background: rgb(35 62 130 / 0.85);
+    color: #bcd2ff;
+    box-shadow: 0 6px 16px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+html.dark .question-admin .question-row:hover {
+    background: rgb(255 255 255 / 0.04);
+}
+
+html.dark .question-action {
+    color: #93a5c7;
+}
+
+html.dark .question-action:hover {
+    background: rgb(255 255 255 / 0.08);
+    color: #8fb2ff;
+}
+
+html.dark .question-editor-shell {
+    background: rgb(4 9 20 / 0.55);
+}
+
+html.dark .question-editor-card {
+    border-color: rgb(255 255 255 / 0.1);
+    background: #0e1830;
+    box-shadow:
+        0 24px 70px rgb(0 0 0 / 0.5),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+/* Question cards and the glass tab bar keep white gradient surfaces in light mode;
+   background-image needs overriding, not just background-color. */
+html.dark .question-admin .question-section-card {
+    border-color: rgb(255 255 255 / 0.09);
+    background: #101b33;
+    box-shadow:
+        0 18px 44px rgb(0 0 0 / 0.4),
+        0 2px 8px rgb(0 0 0 / 0.3),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+html.dark .admin-shell .admin-glass-panel {
+    border-color: rgb(98 128 195 / 0.35);
+    background: rgb(14 23 46 / 0.78);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    -webkit-backdrop-filter: blur(0.75rem) saturate(125%);
+    backdrop-filter: blur(0.75rem) saturate(125%);
+}
+
+/* Selected section tab: bright selection surface instead of the light pastel chip. */
+html.dark .admin-shell .admin-glass-panel button[class~="bg-[#edf4ff]"] {
+    background-color: rgb(26 55 109 / 0.92);
+    color: #ffffff;
+}
+
+/* Native form controls inside the admin shell keep readable colors in dark mode. */
+html.dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html.dark .admin-shell select,
+html.dark .admin-shell textarea {
+    background-color: rgb(9 16 34);
+    color: #e8eefb;
+}
+
+html.dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"])::placeholder,
+html.dark .admin-shell textarea::placeholder {
+    color: #7d8fae;
+}
+
+html.dark .admin-shell select option {
+    background-color: #0e1830;
+    color: #e8eefb;
+}
+
+/* Inline utility colors used by the question manager and dialogs, remapped for dark. */
+html.dark .admin-shell [class~="text-[#10214b]"],
+html.dark .admin-shell [class~="text-[#33476b]"] {
+    color: #e6ecfa;
+}
+
+html.dark .admin-shell [class~="text-[#53668d]"],
+html.dark .admin-shell [class~="text-[#607296]"],
+html.dark .admin-shell [class~="text-[#63749a]"],
+html.dark .admin-shell [class~="text-[#6a7ca0]"],
+html.dark .admin-shell [class~="text-[#6d7fa4]"],
+html.dark .admin-shell [class~="text-[#6f82a8]"],
+html.dark .admin-shell [class~="text-[#7182a3]"],
+html.dark .admin-shell [class~="text-[#7c8dab]"],
+html.dark .admin-shell [class~="text-[#8999b7]"],
+html.dark .admin-shell [class~="text-[#8a9aba]"],
+html.dark .admin-shell [class~="text-[#9aa9c2]"] {
+    color: #9db0d2;
+}
+
+html.dark .admin-shell [class~="text-[#405277]"] {
+    color: #b7c5de;
+}
+
+html.dark .admin-shell [class~="text-[#1357e8]"] {
+    color: #8fb2ff;
+}
+
+html.dark .admin-shell [class~="text-gray-900"],
+html.dark .admin-shell [class~="text-gray-800"] {
+    color: #eef3ff;
+}
+
+html.dark .admin-shell [class~="text-gray-700"],
+html.dark .admin-shell [class~="text-gray-600"],
+html.dark .admin-shell [class~="text-gray-400"] {
+    color: #a8b6cd;
+}
+
+html.dark .admin-shell [class~="bg-[#edf4ff]"] {
+    background-color: rgb(66 105 255 / 0.16);
+}
+
+html.dark .admin-shell [class~="bg-[#f8faff]"],
+html.dark .admin-shell [class~="bg-[#f6f9ff]"],
+html.dark .admin-shell [class~="bg-[#f1f5fb]"],
+html.dark .admin-shell [class~="bg-[#f0f4fa]"],
+html.dark .admin-shell [class~="bg-slate-50"] {
+    background-color: rgb(255 255 255 / 0.05);
+}
+
+html.dark .admin-shell [class~="hover:bg-[#edf4ff]"]:hover {
+    background-color: rgb(255 255 255 / 0.08);
+}
+
+/* Common Answers mini-cards, progress tracks, and loading overlay. */
+html.dark .admin-shell [class~="bg-[#fbfcff]"] {
+    background-color: rgb(255 255 255 / 0.035);
+}
+
+html.dark .admin-shell [class~="bg-[#e9eef7]"] {
+    background-color: rgb(255 255 255 / 0.1);
+}
+
+html.dark .admin-shell [class~="hover:border-[#b8c9e7]"]:hover {
+    border-color: rgb(84 118 196 / 0.5);
+}
+
+html.dark .admin-shell [class~="bg-[#f5f8ff]/70"] {
+    background-color: rgb(9 16 34 / 0.7);
+}
+
+/* Inline pastel icon chips get deep tints in dark mode. */
+html.dark .admin-shell .admin-mini-icon {
+    filter: brightness(0.45) saturate(1.4);
+}
+
+html.dark .admin-shell [class~="hover:bg-[#f6f9ff]"]:hover {
+    background-color: rgb(255 255 255 / 0.06);
+}
+
+/* Section number chips and question-type accents: translucent tints with bright text. */
+html.dark .admin-shell [class~="bg-blue-50"] {
+    background-color: rgb(96 140 255 / 0.16);
+}
+
+html.dark .admin-shell [class~="text-blue-600"] {
+    color: #8fb2ff;
+}
+
+html.dark .admin-shell [class~="bg-amber-50"] {
+    background-color: rgb(245 158 11 / 0.15);
+}
+
+html.dark .admin-shell [class~="text-amber-600"] {
+    color: #fcd34d;
+}
+
+html.dark .admin-shell [class~="bg-rose-50"] {
+    background-color: rgb(248 113 113 / 0.14);
+}
+
+html.dark .admin-shell [class~="text-rose-600"],
+html.dark .admin-shell [class~="text-rose-700"] {
+    color: #fda4af;
+}
+
+html.dark .admin-shell [class~="text-emerald-700"] {
+    color: #6ee7b7;
+}
+
+html.dark .admin-shell [class~="border-emerald-100"],
+html.dark .admin-shell [class~="border-emerald-200"] {
+    border-color: rgb(52 211 153 / 0.3);
+}
+
+html.dark .admin-shell [class~="hover:bg-slate-50"]:hover {
+    background-color: rgb(255 255 255 / 0.06);
+}
+
+html.dark .admin-shell [class~="hover:bg-rose-50"]:hover {
+    background-color: rgb(248 113 113 / 0.12);
+}
+
+html.dark .admin-shell [class~="hover:bg-rose-100"]:hover {
+    background-color: rgb(248 113 113 / 0.18);
+}
+
+html.dark .admin-shell [class~="hover:border-rose-300"]:hover {
+    border-color: rgb(248 113 113 / 0.4);
+}
+
+html.dark .admin-shell [class~="border-[#cdd9ea]"],
+html.dark .admin-shell [class~="border-[#ced9e9]"],
+html.dark .admin-shell [class~="border-[#e0e8f3]"],
+html.dark .admin-shell [class~="border-[#e4ebf5]"],
+html.dark .admin-shell [class~="border-[#e7edf6]"],
+html.dark .admin-shell [class~="border-[#d6e0ee]"],
+html.dark .admin-shell [class~="border-gray-300"] {
+    border-color: rgb(255 255 255 / 0.14);
+}
+
+html.dark .admin-shell [class~="border-[#9db4d6]"] {
+    border-color: rgb(120 152 210 / 0.45);
+}
+
+html.dark .admin-shell [class~="bg-purple-50"] {
+    background-color: rgb(167 139 250 / 0.14);
+}
+
+html.dark .admin-shell [class~="text-purple-600"] {
+    color: #c4b5fd;
+}
+
+html.dark .admin-shell [class~="bg-emerald-50"] {
+    background-color: rgb(52 211 153 / 0.13);
+}
+
+html.dark .admin-shell [class~="text-emerald-600"] {
+    color: #6ee7b7;
+}
+
+html.dark .admin-shell [class~="bg-slate-100"] {
+    background-color: rgb(255 255 255 / 0.07);
+}
+
+html.dark .admin-shell [class~="text-slate-600"],
+html.dark .admin-shell [class~="text-slate-500"] {
+    color: #a5b4c6;
+}
+
+html.dark .admin-shell [class~="text-slate-400"] {
+    color: #7e8fa8;
+}
+
+html.dark .admin-shell [class~="bg-slate-300"] {
+    background-color: rgb(255 255 255 / 0.18);
+}
+
 html.dark .admin-shell .admin-account-card {
     border-color: rgb(255 255 255 / 0.18);
     background:
@@ -3776,4 +4069,382 @@ html.dark .admin-donut-empty {
 html.dark .admin-donut-icon {
     background: rgb(35 62 130 / 0.6);
     color: #9dbdff;
+}
+
+/* ==========================================================================
+   Dark theme — student survey pages (survey + thank-you).
+   Follows the stored bec-theme preference or prefers-color-scheme, applied
+   before paint by the shared script in layouts/partials/theme-bootstrap.blade.php.
+   The survey rules are not scoped to the page body so the embedded draft
+   preview inside the dark dashboard adapts as well.
+   ========================================================================== */
+html.dark body.survey-page {
+    background: #070d1d;
+    color: #c9d6f0;
+}
+
+html.dark .survey-layout {
+    background-color: #070d1d;
+    background-image:
+        radial-gradient(circle at 90% 6%, rgb(30 71 160 / 0.38), transparent 30rem),
+        radial-gradient(circle at 4% 96%, rgb(63 46 148 / 0.32), transparent 32rem),
+        linear-gradient(135deg, #0a1124 0%, #0b1526 46%, #0a1226 72%, #0d1428 100%);
+}
+
+html.dark .survey-intro-brand img,
+html.dark .bec-thanks-brand img {
+    filter: brightness(0) invert(1);
+}
+
+html.dark .survey-intro-panel {
+    border-color: rgb(255 255 255 / 0.09);
+    background: linear-gradient(145deg, rgb(17 28 56 / 0.92), rgb(13 23 46 / 0.86));
+    box-shadow:
+        0 1.5rem 3.5rem rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .survey-intro-copy > p {
+    color: #94a5c8;
+}
+
+html.dark .survey-intro-copy h1 {
+    color: #eef3ff;
+}
+
+html.dark .survey-intro-copy h1 span {
+    color: #8fb2ff;
+}
+
+html.dark .survey-intro-copy strong {
+    color: #c9d6f0;
+}
+
+html.dark .survey-intro-points li {
+    color: #c9d6f0;
+}
+
+html.dark .survey-intro-points li > span {
+    background: rgb(66 105 255 / 0.16);
+    color: #8fb2ff;
+}
+
+html.dark .survey-intro-mobile-status {
+    border-color: rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.06);
+    color: #c9d6f0;
+    box-shadow: 0 0.45rem 1.2rem rgb(0 0 0 / 0.35);
+}
+
+html.dark .survey-intro-photo {
+    filter: brightness(0.55) saturate(0.85);
+}
+
+html.dark .survey-card {
+    border-color: rgb(255 255 255 / 0.09);
+    background: #101b33;
+    box-shadow:
+        0 1.25rem 3.5rem rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+html.dark .survey-card-header {
+    border-bottom-color: rgb(255 255 255 / 0.08);
+}
+
+html.dark .survey-card-title {
+    color: #eef3ff;
+}
+
+html.dark .survey-card-description {
+    color: #94a5c8;
+}
+
+html.dark .survey-card-status {
+    border-color: rgb(98 128 195 / 0.35);
+    background: rgb(14 23 46 / 0.78);
+    color: #c9d6f0;
+}
+
+html.dark .survey-card-status i {
+    background: #5c6f96;
+}
+
+html.dark .survey-section-track li {
+    color: #94a5c8;
+}
+
+html.dark .survey-section-track li::after {
+    background: rgb(255 255 255 / 0.1);
+}
+
+html.dark .survey-section-track li > span {
+    background: rgb(255 255 255 / 0.07);
+    color: #a7b7d6;
+}
+
+html.dark .survey-section-track li.is-ellipsis > span {
+    background: rgb(255 255 255 / 0.05);
+}
+
+html.dark .survey-section-track li.is-ellipsis > span,
+html.dark .survey-section-track li.is-ellipsis em {
+    color: #8195b8;
+}
+
+html.dark .survey-section-track li.is-active {
+    color: #eef3ff;
+}
+
+html.dark .survey-section-track li.is-active > span {
+    box-shadow: 0 0.45rem 0.9rem rgb(20 87 255 / 0.35);
+}
+
+html.dark .survey-section-track li.is-complete > span,
+html.dark .survey-section-track li.is-ellipsis.is-complete > span {
+    background: rgb(66 105 255 / 0.22);
+    color: #8fb2ff;
+}
+
+html.dark .survey-progress-copy {
+    color: #94a5c8;
+}
+
+html.dark .survey-progress-copy strong {
+    color: #eef3ff;
+}
+
+html.dark .survey-progress-count,
+html.dark .survey-progress-percentage {
+    color: #94a5c8;
+}
+
+html.dark .survey-progress-track {
+    background: rgb(255 255 255 / 0.09);
+}
+
+html.dark .survey-progress-section {
+    background: rgb(66 105 255 / 0.16);
+    color: #8fb2ff;
+}
+
+html.dark .survey-option-page {
+    background: rgb(66 105 255 / 0.16);
+}
+
+html.dark .survey-question-heading > p {
+    background: rgb(66 105 255 / 0.16);
+    color: #8fb2ff;
+}
+
+html.dark .survey-question-number {
+    background: rgb(66 105 255 / 0.22);
+    color: #a8c3ff;
+    box-shadow: none;
+}
+
+html.dark .survey-question-heading h2 {
+    color: #eef3ff;
+}
+
+html.dark .survey-question-heading h2 + span {
+    color: #94a5c8;
+}
+
+html.dark .survey-option {
+    border-color: rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.035);
+    color: #c9d6f0;
+}
+
+html.dark .survey-option:hover {
+    border-color: rgb(84 118 196 / 0.55);
+    background: rgb(255 255 255 / 0.07);
+}
+
+html.dark .survey-option:has(.survey-option-input:checked) {
+    background: rgb(23 48 108 / 0.7);
+    box-shadow: 0 0 0 1px rgb(20 87 255 / 0.16), 0 0.45rem 1.15rem rgb(0 0 0 / 0.35);
+}
+
+html.dark .survey-option-marker {
+    background: rgb(66 105 255 / 0.18);
+    color: #8fb2ff;
+}
+
+html.dark .survey-option-marker[data-tone='green'] {
+    background: rgb(12 168 110 / 0.16);
+    color: #3ddc97;
+}
+
+html.dark .survey-option-marker[data-tone='orange'] {
+    background: rgb(233 138 0 / 0.16);
+    color: #ffb84d;
+}
+
+html.dark .survey-option-marker[data-tone='purple'] {
+    background: rgb(122 43 226 / 0.2);
+    color: #b78aff;
+}
+
+html.dark .survey-option-marker[data-tone='red'] {
+    background: rgb(237 64 93 / 0.16);
+    color: #ff8fa3;
+}
+
+html.dark .survey-option-marker[data-tone='neutral'] {
+    background: rgb(255 255 255 / 0.07);
+    color: #a7b7d6;
+}
+
+html.dark .survey-option-control {
+    border-color: rgb(148 165 200 / 0.5);
+    background: rgb(13 22 44);
+}
+
+html.dark .survey-selection-count {
+    background: rgb(66 105 255 / 0.16);
+    color: #94a5c8;
+}
+
+html.dark .survey-field-group > legend,
+html.dark .survey-text-response label {
+    color: #c9d6f0;
+}
+
+html.dark .survey-text-response textarea {
+    border-color: rgb(98 128 195 / 0.35);
+    background: rgb(14 23 46 / 0.78);
+    color: #d7e2f8;
+}
+
+html.dark .survey-text-response textarea::placeholder {
+    color: #5f7192;
+}
+
+html.dark .survey-text-response textarea:focus {
+    border-color: rgb(64 111 255);
+    background: rgb(9 16 34);
+    box-shadow: 0 0 0 3px rgb(20 87 255 / 0.22);
+}
+
+html.dark .survey-text-response > span {
+    color: #8195b8;
+}
+
+html.dark .survey-navigation {
+    border-top-color: rgb(255 255 255 / 0.08);
+}
+
+html.dark .survey-error {
+    color: #ff8fa3;
+}
+
+html.dark .survey-button--secondary {
+    border-color: rgb(94 124 190 / 0.4);
+    background: rgb(255 255 255 / 0.05);
+    color: #c9d6f0;
+}
+
+html.dark .survey-button--secondary:hover {
+    border-color: rgb(20 87 255 / 0.6);
+    background: rgb(255 255 255 / 0.09);
+}
+
+html.dark .survey-complete > p {
+    color: #8fb2ff;
+}
+
+html.dark .survey-complete h2 {
+    color: #eef3ff;
+}
+
+html.dark .survey-complete > span {
+    color: #94a5c8;
+}
+
+/* Mobile survey chrome: dark counterparts of the compact layout overrides. */
+@media (max-width: 640px) {
+    html.dark .survey-intro {
+        background: linear-gradient(125deg, #0b1526 0%, #0d1a33 55%, #101f3f 100%);
+    }
+
+    html.dark .survey-intro::before {
+        background: linear-gradient(180deg, transparent 68%, rgb(7 13 29 / 0.85) 100%);
+    }
+
+    html.dark .survey-intro-panel {
+        border-color: rgb(255 255 255 / 0.1);
+        background: rgb(13 22 44 / 0.66);
+        box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.35);
+    }
+
+    html.dark .survey-navigation {
+        border-top-color: rgb(255 255 255 / 0.08);
+        background: rgb(10 18 38 / 0.94);
+        box-shadow: 0 -0.6rem 1.6rem rgb(0 0 0 / 0.4);
+    }
+}
+
+/* Thank-you page. */
+html.dark body.bec-thanks-page {
+    background:
+        radial-gradient(circle at 50% 15%, rgb(30 71 160 / 0.35), transparent 46%),
+        linear-gradient(180deg, #0a1124 0%, #070d1d 100%);
+    color: #c9d6f0;
+}
+
+html.dark .bec-thanks-blob--blue {
+    background: radial-gradient(circle, rgb(23 100 255 / 0.16), transparent 68%);
+}
+
+html.dark .bec-thanks-blob--mint {
+    background: radial-gradient(circle, rgb(22 185 129 / 0.1), transparent 68%);
+}
+
+html.dark .bec-thanks-header {
+    border-color: rgb(255 255 255 / 0.09);
+    background: rgb(13 22 44 / 0.85);
+    box-shadow:
+        0 0.75rem 2rem rgb(0 0 0 / 0.4),
+        inset 0 1px 0 rgb(255 255 255 / 0.07);
+}
+
+html.dark .bec-thanks-status {
+    background: rgb(22 185 129 / 0.14);
+    box-shadow: inset 0 0 0 1px rgb(22 185 129 / 0.32);
+    color: #5fe0ac;
+}
+
+html.dark .bec-thanks-card {
+    border-color: rgb(255 255 255 / 0.09);
+    background: #101b33;
+    box-shadow:
+        0 1.5rem 3.5rem rgb(0 0 0 / 0.45),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+html.dark .bec-thanks-label {
+    background: rgb(66 105 255 / 0.16);
+    color: #8fb2ff;
+}
+
+html.dark .bec-thanks-title {
+    color: #eef3ff;
+}
+
+html.dark .bec-thanks-message {
+    color: #94a5c8;
+}
+
+html.dark .bec-thanks-divider span {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.14));
+}
+
+html.dark .bec-thanks-divider span:last-child {
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.14), transparent);
+}
+
+html.dark .bec-thanks-divider svg {
+    fill: #4d6cb3;
 }

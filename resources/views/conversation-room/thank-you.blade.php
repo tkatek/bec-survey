@@ -4,8 +4,11 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Thank you for helping Boston English Center improve the Conversation Room.">
+        <meta name="theme-color" content="#f8fbff">
 
         <title>Survey Complete | Boston English Center</title>
+
+        @include('layouts.partials.theme-bootstrap')
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>

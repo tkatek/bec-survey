@@ -18,7 +18,7 @@ class DashboardController extends Controller
     ): View {
         $filter = $request->filter();
         $payload = $analytics->cachedBuild($filter);
-        $snapshotToken = $snapshots->store($request->session(), $payload);
+        $snapshotToken = $snapshots->store($payload);
 
         return view('dashboard', [
             'analytics' => $payload,

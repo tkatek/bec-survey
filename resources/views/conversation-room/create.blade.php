@@ -3,9 +3,11 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#071326">
+        <meta name="theme-color" content="#f4f7ff">
 
         <title>{{ __('Conversation Room Feedback Survey | Boston English Center') }}</title>
+
+        @include('layouts.partials.theme-bootstrap')
 
         <link rel="preload" as="image" href="{{ asset('images/conversation-room/conversation-room-background.webp') }}">
 

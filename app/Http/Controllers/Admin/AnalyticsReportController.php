@@ -23,7 +23,7 @@ class AnalyticsReportController extends Controller
         $filter = $request->filter();
         $snapshotToken = $request->string('snapshot')->toString();
         $payload = $snapshotToken !== ''
-            ? $snapshots->retrieve($request->session(), $snapshotToken)
+            ? $snapshots->retrieve($snapshotToken)
             : null;
         $snapshotMatches = is_array($payload)
             && ($payload['meta']['query'] ?? null) === $filter->query();

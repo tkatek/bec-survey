@@ -6,93 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="theme-color" content="#eef4ff">
         <title>{{ config('app.name', 'Boston English Center') }}</title>
-        <script>
-            (function () {
-                var dashboardPath = new URL(@json(route('dashboard'))).pathname;
-
-                if (location.pathname !== dashboardPath) {
-                    return;
-                }
-
-                var stored = null;
-
-                try {
-                    stored = localStorage.getItem('bec-theme');
-                } catch (error) {
-                    stored = null;
-                }
-
-                var media = window.matchMedia('(prefers-color-scheme: dark)');
-
-                function applyTheme(dark) {
-                    document.documentElement.classList.toggle('dark', dark);
-                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-
-                    var meta = document.querySelector('meta[name="theme-color"]');
-
-                    if (meta) {
-                        meta.setAttribute('content', dark ? '#070d1d' : '#eef4ff');
-                    }
-
-                    window.dispatchEvent(new Event('resize'));
-                }
-
-                window.becTheme = {
-                    set: function (dark, persist) {
-                        applyTheme(dark);
-
-                        if (persist) {
-                            try {
-                                localStorage.setItem('bec-theme', dark ? 'dark' : 'light');
-                            } catch (error) {
-                                /* storage unavailable */
-                            }
-                        }
-                    },
-                };
-
-                applyTheme(stored ? stored === 'dark' : media.matches);
-
-                media.addEventListener('change', function (event) {
-                    if (!stored) {
-                        applyTheme(event.matches);
-                    }
-                });
-
-                // Chart.js colors are hardcoded inside the bundle; remap them at draw time
-                // so canvas charts match the active theme without touching app logic.
-                if (window.CanvasRenderingContext2D) {
-                    var chartColors = {
-                        '#0b1739': '#e9efff',
-                        '#71809d': '#96a7c9',
-                        '#edf1f7': 'rgba(150, 173, 218, 0.16)',
-                    };
-
-                    var proto = CanvasRenderingContext2D.prototype;
-
-                    ['fillStyle', 'strokeStyle'].forEach(function (property) {
-                        var descriptor = Object.getOwnPropertyDescriptor(proto, property);
-
-                        Object.defineProperty(proto, property, {
-                            get: function () {
-                                return descriptor.get.call(this);
-                            },
-                            set: function (value) {
-                                if (
-                                    typeof value === 'string'
-                                    && document.documentElement.classList.contains('dark')
-                                    && chartColors[value.toLowerCase()]
-                                ) {
-                                    value = chartColors[value.toLowerCase()];
-                                }
-
-                                descriptor.set.call(this, value);
-                            },
-                        });
-                    });
-                }
-            })();
-        </script>
+        @include('layouts.partials.theme-bootstrap')
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="admin-app-body min-h-screen overflow-x-hidden font-sans text-[#071326] antialiased">
@@ -130,6 +44,12 @@
                 </nav>
 
                 <div class="mt-auto grid min-w-0 gap-3 pt-6">
+                    <button type="button" class="admin-secondary-action flex w-full min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]" onclick="window.becTheme.set(!document.documentElement.classList.contains('dark'), true)" aria-label="Switch theme">
+                        <svg class="admin-theme-toggle-icon-moon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
+                        <svg class="admin-theme-toggle-icon-sun h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+                        <span class="admin-theme-toggle-label-moon">Dark mode</span>
+                        <span class="admin-theme-toggle-label-sun">Light mode</span>
+                    </button>
                     <a href="{{ route('conversation-room.create') }}" target="_blank" rel="noopener" class="admin-secondary-action flex w-full min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></svg>
                         Open student survey
@@ -163,7 +83,10 @@
                         <img src="{{ asset('images/conversation-room/bec-logo-mark.png') }}" alt="" aria-hidden="true" class="admin-brand-mark">
                         <span class="admin-brand-name"><strong>Boston</strong><em>English Center</em></span>
                     </a>
-                    <span class="h-10 w-10" aria-hidden="true"></span>
+                    <button type="button" class="admin-secondary-action inline-flex h-10 w-10 items-center justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1357e8]" onclick="window.becTheme.set(!document.documentElement.classList.contains('dark'), true)" aria-label="Switch theme">
+                        <svg class="admin-theme-toggle-icon-moon h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
+                        <svg class="admin-theme-toggle-icon-sun h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+                    </button>
                 </header>
                 @isset($header)
                     <div class="border-b border-[#dce5f2] bg-white px-5 py-6 sm:px-8">

@@ -884,6 +884,10 @@ Alpine.data('dashboardAnalytics', (config) => ({
     },
 
     chartOptions({ tooltip, ...options }) {
+        // Scriptable colors keep tooltips readable after a live theme switch:
+        // values are resolved on every draw instead of once at chart creation.
+        const isDark = () => document.documentElement.classList.contains('dark');
+
         return {
             responsive: true,
             maintainAspectRatio: false,
@@ -893,11 +897,11 @@ Alpine.data('dashboardAnalytics', (config) => ({
                 legend: { display: false },
                 tooltip: {
                     displayColors: true,
-                    backgroundColor: 'rgba(255, 255, 255, .97)',
-                    borderColor: 'rgba(194, 211, 237, .92)',
+                    backgroundColor: () => (isDark() ? 'rgba(13, 22, 44, .97)' : 'rgba(255, 255, 255, .97)'),
+                    borderColor: () => (isDark() ? 'rgba(104, 134, 200, .45)' : 'rgba(194, 211, 237, .92)'),
                     borderWidth: 1,
-                    titleColor: '#0b1739',
-                    bodyColor: '#52658b',
+                    titleColor: () => (isDark() ? '#eef3ff' : '#0b1739'),
+                    bodyColor: () => (isDark() ? '#94a5c8' : '#52658b'),
                     cornerRadius: 12,
                     caretSize: 6,
                     boxPadding: 4,

@@ -19,7 +19,7 @@ class AnalyticsDataController extends Controller
 
         return response()->json([
             'analytics' => $payload,
-            'snapshotToken' => $snapshots->store($request->session(), $payload),
+            'snapshotToken' => $snapshots->store($payload),
         ]);
     }
 }
